@@ -1,0 +1,10 @@
+# SketchUp backups
+*.skb
+*.bak
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Presets (optional: if you want to keep your presets private, uncomment the line below)
+# presets.json
