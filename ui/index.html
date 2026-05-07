@@ -192,13 +192,21 @@
             </div>
         </div>
         
-        <div class="field" style="margin-top: 10px;">
-          <label>Τύπος Πόμολου:</label>
-          <select id="handles">
-            <option value="None">Κανένα</option>
-            <option value="Knob">Knob (Μικρό)</option>
-            <option value="Bar">Bar Pull (Μπάρα)</option>
-          </select>
+        <div class="section-header" style="margin-top: 15px;">Μεντεσέδες</div>
+        <div class="property-grid">
+            <div class="field">
+                <label>Τύπος</label>
+                <select id="hinge_type">
+                    <option value="None">Κανένας</option>
+                    <option value="Blum_ClipTop" selected>Blum Clip Top (35mm)</option>
+                    <option value="Salice_110">Salice 110° (35mm)</option>
+                    <option value="Hafele_Metalla">Häfele Metalla (35mm)</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Offset (mm)</label>
+                <input type="number" id="hinge_offset" value="100">
+            </div>
         </div>
       </div>
 
