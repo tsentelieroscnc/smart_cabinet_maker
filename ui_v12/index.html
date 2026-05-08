@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Smart Cabinet Maker Pro v13.1 - Master Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+        --bg-dark: #f0f2f5;
+        --sidebar-bg: #ffffff;
+        --sidebar-active: #e7f3ff;
+        --accent: #0078d4;
+        --accent-hover: #005a9e;
+        --text-title: #1a1a1a;
+        --text-body: #444444;
+        --text-muted: #888888;
+        --border-color: #dce0e5;
+        --sidebar-width: 200px;
+    }
+
+    body { background-color: var(--bg-dark); color: var(--text-body); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
+    .layout { display: flex; flex: 1; overflow: hidden; width: 100%; }
+    
+    .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+    .sidebar h2 { color: var(--accent); font-size: 13px; padding: 20px 15px; margin: 0; border-bottom: 1px solid #f0f0f0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    
+    .tablink { background-color: transparent; color: var(--text-body); border: none; outline: none; cursor: pointer; padding: 14px 15px; text-align: left; font-size: 13px; font-weight: 600; border-left: 4px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+    .tablink svg { width: 18px; height: 18px; fill: currentColor; opacity: 0.7; }
+    .tablink:hover { background-color: #f8f9fa; }
+    .tablink.active { background-color: var(--sidebar-active); color: var(--accent); border-left: 4px solid var(--accent); }
+    .tablink.active svg { opacity: 1; }
+
+    .main-content { flex: 1; overflow-y: auto; padding: 25px; background: #ffffff; }
+    .tabcontent { display: none; max-width: 700px; }
+    h3 { margin: 0 0 20px 0; color: var(--text-title); font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    
+    .field { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; gap: 20px; }
+    .label-zone { flex: 1; }
+    .label-main { font-size: 13px; font-weight: 600; color: #333; display: block; }
+    .label-help { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }
+    
+    input, select { width: 120px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; height: 32px; font-size: 13px; transition: border-color 0.2s; }
+    input:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px rgba(0,120,212,0.1); }
+    select { width: 160px; }
+
+    .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #fcfcfd; padding: 18px; border: 1px solid #edf0f2; border-radius: 10px; margin-bottom: 25px; }
+    .grid-item { display: flex; flex-direction: column; gap: 5px; }
+    .grid-item label { font-size: 10px; font-weight: 800; color: #999; text-transform: uppercase; }
+    .grid-item input, .grid-item select { width: 100%; }
+
+    .section-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #999; margin: 30px 0 15px 0; display: flex; align-items: center; letter-spacing: 1px; }
+    .section-header::after { content: ""; flex: 1; height: 1px; background: #eee; margin-left: 10px; }
+
+    .switch-container { display: flex; align-items: center; height: 32px; width: 120px; justify-content: flex-end; }
+    .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #999; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    .btn-build { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; font-weight: 700; border-radius: 6px; cursor: pointer; text-transform: uppercase; transition: background 0.2s; box-shadow: 0 4px 6px rgba(0,120,212,0.2); }
+    .btn-build:hover { background: var(--accent-hover); }
+    .btn-secondary { background: #f0f0f0; border: 1px solid #ccc; padding: 5px 12px; cursor: pointer; font-size: 11px; border-radius: 4px; }
+    
+    .browse-btn { padding: 0 12px; background: #f1f3f5; border: 1px solid #ced4da; border-left: none; cursor: pointer; border-radius: 0 4px 4px 0; display: flex; align-items: center; height: 32px; box-sizing: border-box; }
+    .browse-btn:hover { background: #e9ecef; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="sidebar">
+      <h2><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> Cabinet Pro</h2>
+      <div style="padding: 10px; border-bottom: 1px solid #f0f0f0;">
+        <select id="preset_selector" onchange="loadPreset()" style="width: 100%; background: #f8f9fa;">
+            <option value="">-- Επιλογή Προτύπου --</option>
+        </select>
+      </div>
+      
+      <button class="tablink active" onclick="openTab(event, 'globals')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Γενικοί Κανόνες
+      </button>
+
+      <button class="tablink" onclick="openTab(event, 'box')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        Σώμα (Box)
+      </button>
+
+      <button class="tablink" onclick="openTab(event, 'joinery')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7h-9l-3-3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+        Σύνδεση
+      </button>
+
+      <button class="tablink" onclick="openTab(event, 'interior')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+        Εσωτερικό
+      </button>
+
+      <button class="tablink" onclick="openTab(event, 'fronts')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+        Προσόψεις
+      </button>
+
+      <button class="tablink" onclick="openTab(event, 'materials')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+        Υλικά
+      </button>
+
+      <div style="margin-top:auto; padding:20px;">
+        <button class="btn-build" onclick="buildCabinet()">Build 3D</button>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <!-- GLOBALS -->
+      <div id="globals" class="tabcontent" style="display:block">
+        <h3>Γενικοί Κανόνες</h3>
+        <div class="field">
+            <div class="label-zone">
+                <span class="label-main">Πάχος Υλικού (mm)</span>
+                <span class="label-help">Πάχος των πάνελ (συνήθως 18mm)</span>
+            </div>
+            <input type="number" id="mat_th" value="18">
+        </div>
+        <div class="field">
+            <div class="label-zone">
+                <span class="label-main">Πάχος Πλάτης (mm)</span>
+                <span class="label-help">Πάχος HDF πλάτης (συνήθως 8mm)</span>
+            </div>
+            <input type="number" id="back_th" value="8">
+        </div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Αρμός (Gap mm)</span><span class="label-help">Κενό μεταξύ προσοψεων</span></div>
+            <input type="number" id="gap" value="3">
+        </div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Ύψος Μπάζας (mm)</span><span class="label-help">Ύψος ποδιών ερμαρίου</span></div>
+            <input type="number" id="plinth" value="100">
+        </div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Πάχος PVC (mm)</span><span class="label-help">Πάχος ταινίας περιθωρίου</span></div>
+            <input type="number" id="pvc_th" value="1">
+        </div>
+        
+        <div style="margin-top:40px; display:flex; gap:10px;">
+            <input type="text" id="preset_name" placeholder="Όνομα..." style="flex:1">
+            <button class="btn-secondary" onclick="savePreset()">Save</button>
+        </div>
+      </div>
+
+      <!-- BOX -->
+      <div id="box" class="tabcontent">
+        <h3>Διαστάσεις Σώματος</h3>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Τύπος Ερμαρίου</span></div>
+            <select id="cab_type" onchange="updateDefaults()">
+                <option value="Base">Βάσης (760/560)</option>
+                <option value="Wall">Κρεμαστό (720/330)</option>
+                <option value="Wardrobe">Ντουλάπα (1600/580)</option>
+            </select>
+        </div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Πλάτος</label><input type="number" id="width" value="600"></div>
+            <div class="grid-item"><label>Ύψος</label><input type="number" id="height" value="760"></div>
+            <div class="grid-item"><label>Βάθος</label><input type="number" id="depth" value="560"></div>
+            <div class="grid-item"><label>Τύπος Καπακιού</label>
+                <select id="top_type">
+                    <option value="Solid">Πάνελ</option>
+                    <option value="Rails">Τραβέρσες</option>
+                </select>
+            </div>
+        </div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Φάρδος Τραβέρσας</span><span class="label-help">Για τύπο Rails</span></div>
+            <input type="number" id="rail_width" value="100">
+        </div>
+        <div class="section-header">Μπάζα (Plinth Insets)</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Εμπρός (F)</label><input type="number" id="plinth_inset_f" value="50"></div>
+            <div class="grid-item"><label>Πίσω (B)</label><input type="number" id="plinth_inset_b" value="0"></div>
+        </div>
+      </div>
+
+      <!-- JOINERY -->
+      <div id="joinery" class="tabcontent">
+        <h3>Σύνδεση & Hardware</h3>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Τρόπος Σύνδεσης</span></div>
+            <select id="conn_type">
+                <option value="SideOverTop">Sides over Top</option>
+                <option value="TopOverSide">Top over Sides</option>
+                <option value="Miter">Miter (45°)</option>
+            </select>
+        </div>
+        <div class="section-header">Connectors (CNC)</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Hardware</label>
+                <select id="connector_type">
+                    <option value="Screw_3.5">Βίδες 3.5</option>
+                    <option value="Dowel">Καβίλιες</option>
+                    <option value="Minifix">Minifix</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+            <div class="grid-item"><label>Mode</label>
+                <select id="connector_mode">
+                    <option value="Manual">Manual</option>
+                    <option value="Auto">Auto</option>
+                </select>
+            </div>
+            <div class="grid-item"><label>Ποσότητα/Step</label><input type="number" id="connector_val" value="3"></div>
+            <div class="grid-item"><label>Offset</label><input type="number" id="connector_offset" value="37"></div>
+        </div>
+        <div class="section-header">Πλάτη & Γκινισιά</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Τύπος Πλάτης</label>
+                <select id="back_type">
+                    <option value="Nailed">Καρφωτή</option>
+                    <option value="Grooved">Γκινισιά</option>
+                    <option value="Hybrid">Hybrid</option>
+                </select>
+            </div>
+            <div class="grid-item"><label>Inset Πλάτης</label><input type="number" id="back_inset" value="15"></div>
+            <div class="grid-item"><label>Βάθος Γκινισιάς</label><input type="number" id="groove_depth" value="8"></div>
+        </div>
+      </div>
+
+      <!-- INTERIOR -->
+      <div id="interior" class="tabcontent">
+        <h3>Εσωτερικός Χώρος</h3>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Κάθετοι Ορθοστάτες</span></div>
+            <input type="number" id="v_dividers" value="0">
+        </div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Line Boring (32mm)</span></div>
+            <div class="switch-container">
+                <label class="switch"><input type="checkbox" id="line_boring"><span class="slider"></span></label>
+            </div>
+        </div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Offset F</label><input type="number" id="lb_offset_f" value="37"></div>
+            <div class="grid-item"><label>Offset B</label><input type="number" id="lb_offset_b" value="37"></div>
+            <div class="grid-item"><label>Ράφια</label><input type="number" id="shelves" value="1"></div>
+            <div class="grid-item"><label>Inset Ραφιού</label><input type="number" id="shelf_inset" value="20"></div>
+        </div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Zone Splitter</span></div>
+            <select id="zone_split">
+                <option value="None">None</option>
+                <option value="Vertical">Vertical</option>
+                <option value="Horizontal">Horizontal</option>
+            </select>
+        </div>
+      </div>
+
+      <!-- FRONTS -->
+      <div id="fronts" class="tabcontent">
+        <h3>Προσόψεις & Μηχανισμοί</h3>
+        <div class="property-grid">
+            <div class="grid-item"><label>Τύπος</label>
+                <select id="front_type">
+                    <option value="Doors">Πόρτες</option>
+                    <option value="Drawers">Συρτάρια</option>
+                    <option value="Gola">Gola Front</option>
+                    <option value="Open">Ανοιχτό</option>
+                </select>
+            </div>
+            <div class="grid-item"><label>Overlay</label>
+                <select id="overlay_type">
+                    <option value="Full">Full</option>
+                    <option value="Half">Half</option>
+                    <option value="Inset">Inset</option>
+                </select>
+            </div>
+            <div class="grid-item"><label>Αριθμός (Π/Σ)</label><input type="number" id="front_count" value="2"></div>
+        </div>
+        <div class="section-header">Μεντεσέδες</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Τύπος</label>
+                <select id="hinge_type">
+                    <option value="Blum_ClipTop">Blum Clip Top</option>
+                    <option value="Salice_110">Salice 110</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+            <div class="grid-item"><label>Offset (mm)</label><input type="number" id="hinge_offset" value="100"></div>
+        </div>
+        <div class="section-header">Πόμολα & Gola CNC</div>
+        <div class="field">
+            <div class="label-zone"><span class="label-main">Είδος Λαβής</span></div>
+            <select id="handle_type" onchange="toggleGolaSettings()">
+                <option value="Bar">Bar (2 τρύπες)</option>
+                <option value="Knob">Knob (1 τρύπα)</option>
+                <option value="Gola">Gola Profile</option>
+                <option value="None">None</option>
+            </select>
+        </div>
+        <div id="handle_params_section">
+            <div class="property-grid">
+                <div class="grid-item"><label>Διάκεντρο</label><input type="number" id="handle_cc" value="128"></div>
+                <div class="grid-item"><label>Offset X</label><input type="number" id="handle_offset_x" value="40"></div>
+                <div class="grid-item"><label>Offset Z</label><input type="number" id="handle_offset_z" value="40"></div>
+            </div>
+        </div>
+        <div id="gola_params_section" style="display:none">
+            <div class="property-grid">
+                <div class="grid-item"><label>Προφίλ</label>
+                    <select id="gola_type">
+                        <option value="L">L-Profile</option>
+                        <option value="U">U-Profile</option>
+                    </select>
+                </div>
+                <div class="grid-item"><label>Ύψος (H)</label><input type="number" id="gola_size" value="55"></div>
+                <div class="grid-item"><label>Βάθος (D)</label><input type="number" id="gola_depth" value="30"></div>
+                <div class="grid-item"><label>Radius</label><input type="number" id="gola_radius" value="0"></div>
+            </div>
+        </div>
+      </div>
+
+      <!-- MATERIALS -->
+      <div id="materials" class="tabcontent">
+        <h3>Βιβλιοθήκη Υλικών</h3>
+        <div class="section-header">Σώμα</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Χρώμα</label><input type="text" id="mat_carcass_name" value="White"></div>
+            <div class="grid-item"><label>PVC</label><input type="text" id="mat_carcass_pvc" value="W1000"></div>
+        </div>
+        <div class="field">
+            <div style="display:flex; flex:1; border:1px solid #ced4da; border-radius:4px; overflow:hidden;">
+                <input type="text" id="mat_carcass_tex" style="flex:1; border:none; padding:6px;" placeholder="Texture path...">
+                <button class="browse-btn" onclick="browseFile('mat_carcass_tex')">📁</button>
+            </div>
+        </div>
+        <div class="section-header">Πρόσοψη 1</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Χρώμα</label><input type="text" id="mat_front1_name" value="Oak"></div>
+            <div class="grid-item"><label>PVC</label><input type="text" id="mat_front1_pvc" value="Oak-PVC"></div>
+        </div>
+        <div class="field">
+            <div style="display:flex; flex:1; border:1px solid #ced4da; border-radius:4px; overflow:hidden;">
+                <input type="text" id="mat_front1_tex" style="flex:1; border:none; padding:6px;">
+                <button class="browse-btn" onclick="browseFile('mat_front1_tex')">📁</button>
+            </div>
+        </div>
+        <div class="section-header">Πρόσοψη 2</div>
+        <div class="property-grid">
+            <div class="grid-item"><label>Χρώμα</label><input type="text" id="mat_front2_name" value="Anthra"></div>
+            <div class="grid-item"><label>PVC</label><input type="text" id="mat_front2_pvc" value="Anthra-PVC"></div>
+        </div>
+        <div class="field">
+            <div style="display:flex; flex:1; border:1px solid #ced4da; border-radius:4px; overflow:hidden;">
+                <input type="text" id="mat_front2_tex" style="flex:1; border:none; padding:6px;">
+                <button class="browse-btn" onclick="browseFile('mat_front2_tex')">📁</button>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) tabcontent[i].style.display = "none";
+        tablinks = document.getElementsByClassName("tablink");
+        for (i = 0; i < tablinks.length; i++) tablinks[i].className = tablinks[i].className.replace(" active", "");
+        document.getElementById(tabName).style.display = "block";
+        if (evt) evt.currentTarget.className += " active";
+    }
+
+    function updateDefaults() {
+        var type = document.getElementById('cab_type').value;
+        if (type === "Base") { document.getElementById('height').value = 760; document.getElementById('depth').value = 560; }
+        else if (type === "Wall") { document.getElementById('height').value = 720; document.getElementById('depth').value = 330; }
+        else if (type === "Wardrobe") { document.getElementById('height').value = 1600; document.getElementById('depth').value = 580; }
+    }
+
+    function toggleGolaSettings() {
+        var type = document.getElementById('handle_type').value;
+        var golaSect = document.getElementById('gola_params_section');
+        var handleSect = document.getElementById('handle_params_section');
+        if (type === 'Gola') { golaSect.style.display = 'block'; handleSect.style.display = 'none'; }
+        else if (type === 'None') { golaSect.style.display = 'none'; handleSect.style.display = 'none'; }
+        else { golaSect.style.display = 'none'; handleSect.style.display = 'block'; }
+    }
+
+    function browseFile(id) { window.location.href = 'skp:browseFile@' + id; }
+    function setFilePath(id, path) { document.getElementById(id).value = path; }
+
+    function collectData() {
+        return {
+            global: {
+                materialThickness: parseFloat(document.getElementById('mat_th').value),
+                backThickness: parseFloat(document.getElementById('back_th').value),
+                gap: parseFloat(document.getElementById('gap').value),
+                plinthHeight: parseFloat(document.getElementById('plinth').value),
+                pvcThickness: parseFloat(document.getElementById('pvc_th').value)
+            },
+            box: {
+                cab_type: document.getElementById('cab_type').value,
+                width: parseFloat(document.getElementById('width').value),
+                height: parseFloat(document.getElementById('height').value),
+                depth: parseFloat(document.getElementById('depth').value),
+                backType: document.getElementById('back_type').value,
+                topType: document.getElementById('top_type').value,
+                railWidth: parseFloat(document.getElementById('rail_width').value),
+                connType: document.getElementById('conn_type').value,
+                backInset: parseFloat(document.getElementById('back_inset').value),
+                grooveDepth: parseFloat(document.getElementById('groove_depth').value),
+                plinthInsetF: parseFloat(document.getElementById('plinth_inset_f').value),
+                plinthInsetB: parseFloat(document.getElementById('plinth_inset_b').value),
+                connector_type: document.getElementById('connector_type').value
+            },
+            front: {
+                front_type: document.getElementById('front_type').value,
+                overlay_type: document.getElementById('overlay_type').value,
+                count: parseInt(document.getElementById('front_count').value),
+                hingeType: document.getElementById('hinge_type').value,
+                hingeOffset: parseFloat(document.getElementById('hinge_offset').value),
+                handle_type: document.getElementById('handle_type').value,
+                handle_cc: parseFloat(document.getElementById('handle_cc').value),
+                handle_offset_x: parseFloat(document.getElementById('handle_offset_x').value),
+                handle_offset_z: parseFloat(document.getElementById('handle_offset_z').value),
+                gola_size: parseFloat(document.getElementById('gola_size').value),
+                gola_depth: parseFloat(document.getElementById('gola_depth').value),
+                gola_radius: parseFloat(document.getElementById('gola_radius').value),
+                gola_type: document.getElementById('gola_type').value
+            },
+            interior: {
+                v_dividers: parseInt(document.getElementById('v_dividers').value),
+                shelves: parseInt(document.getElementById('shelves').value),
+                line_boring: document.getElementById('line_boring').checked,
+                lb_offset_f: parseFloat(document.getElementById('lb_offset_f').value),
+                lb_offset_b: parseFloat(document.getElementById('lb_offset_b').value),
+                shelf_inset: parseFloat(document.getElementById('shelf_inset').value),
+                zone_split: document.getElementById('zone_split').value
+            },
+            materials: {
+                mat_carcass_name: document.getElementById('mat_carcass_name').value,
+                mat_carcass_pvc: document.getElementById('mat_carcass_pvc').value,
+                mat_carcass_tex: document.getElementById('mat_carcass_tex').value,
+                mat_front1_name: document.getElementById('mat_front1_name').value,
+                mat_front1_pvc: document.getElementById('mat_front1_pvc').value,
+                mat_front1_tex: document.getElementById('mat_front1_tex').value,
+                mat_front2_name: document.getElementById('mat_front2_name').value,
+                mat_front2_pvc: document.getElementById('mat_front2_pvc').value,
+                mat_front2_tex: document.getElementById('mat_front2_tex').value
+            }
+        };
+    }
+
+    function buildCabinet() { window.location.href = 'skp:buildCabinet@' + JSON.stringify(collectData()); }
+    function savePreset() { window.location.href = 'skp:savePreset@' + document.getElementById('preset_name').value + '@' + JSON.stringify(collectData()); }
+    function loadPreset() { window.location.href = 'skp:loadPreset@' + document.getElementById('preset_selector').value; }
+
+    function updateUIFromData(json) {
+        var d = JSON.parse(json);
+        try {
+            document.getElementById('mat_th').value = d.global.materialThickness;
+            document.getElementById('width').value = d.box.width;
+            document.getElementById('height').value = d.box.height;
+            document.getElementById('depth').value = d.box.depth;
+            document.getElementById('handle_type').value = d.front.handle_type;
+            toggleGolaSettings();
+        } catch(e) {}
+    }
+
+    window.onload = function() { window.location.href = 'skp:fetchPresets'; };
+  </script>
+</body>
+</html>
