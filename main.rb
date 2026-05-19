@@ -32,6 +32,114 @@ module SmartCabinetMaker
     end
   end
 
+  def self.draw_side_strip(en, x, y_start, y_end, z, pw, ph, is_front, is_gola, g_type, gh, gd_val, gr)
+    if is_front && is_gola && g_type == "L"
+      pts = [
+        [x, y_start, z],
+        [x, y_end, z],
+        [x, y_end, z + ph]
+      ]
+      if gr > 0 && gr <= gd_val && gr <= gh
+        r = gr
+        cy = y_start + gd_val - r
+        cz = z + ph - gh + r
+        pts << [x, cy + r, z + ph]
+        pts << [x, cy + r, cz]
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [x, cy + r * Math.cos(angle), cz - r * Math.sin(angle)]
+        end
+        pts << [x, cy, cz - r]
+      else
+        pts << [x, y_start + gd_val, z + ph]
+        pts << [x, y_start + gd_val, z + ph - gh]
+      end
+      pts << [x, y_start, z + ph - gh]
+      
+      pts.uniq!
+      f = en.add_face(pts) rescue nil
+      if f
+        f.reverse! if f.normal.x < 0
+        f.pushpull(pw)
+      else
+        box(en, x, y_start, z, pw, y_end - y_start, ph)
+      end
+    else
+      box(en, x, y_start, z, pw, y_end - y_start, ph)
+    end
+  end
+
+  def self.draw_legs(en, w, d, pl, b, t)
+    return if pl <= 0
+    inset_x = 50.mm
+    pf = b['plinthInsetF'].to_f.mm
+    pb = b['plinthInsetB'].to_f.mm
+    
+    inset_y_front = pf + t + 20.mm
+    inset_y_back = pb + 50.mm
+    
+    # Volpato leg approx dimensions
+    top_plate_w = 70.mm
+    top_plate_d = 70.mm
+    top_plate_h = 5.mm
+    r_cylinder = 14.mm
+    r_foot = 18.mm
+    foot_h = 20.mm
+    
+    pos = [
+      [inset_x, inset_y_front, 0],
+      [w - inset_x, inset_y_front, 0],
+      [inset_x, d - inset_y_back, 0],
+      [w - inset_x, d - inset_y_back, 0]
+    ]
+    
+    m_leg = apply_mat(Sketchup.active_model, "Plastic_Leg_Volpato", "", [30, 30, 30])
+    
+    pos.each do |p|
+      grp = en.add_group; grp.name = "Volpato_Leg"
+      grp.material = m_leg
+      l_ent = grp.entities
+      
+      # Top plate (box)
+      plate_x = p[0] - top_plate_w/2.0
+      plate_y = p[1] - top_plate_d/2.0
+      box(l_ent, plate_x, plate_y, pl - top_plate_h, top_plate_w, top_plate_d, top_plate_h)
+      
+      # Cylinder body
+      ci = l_ent.add_circle([p[0], p[1], foot_h], [0, 0, 1], r_cylinder)
+      f = l_ent.add_face(ci) rescue nil
+      if f
+        f.reverse! if f.normal.z < 0
+        f.pushpull(pl - top_plate_h - foot_h)
+      end
+      
+      # Bottom adjustable foot
+      ci2 = l_ent.add_circle([p[0], p[1], 0], [0, 0, 1], r_foot)
+      f2 = l_ent.add_face(ci2) rescue nil
+      if f2
+        f2.reverse! if f2.normal.z < 0
+        f2.pushpull(foot_h)
+      end
+      
+      # Convert to component
+      comp = grp.to_component
+      comp.definition.name = "Volpato_Leg"
+      comp.name = "Volpato_Leg"
+      comp.material = m_leg
+    end
+  end
+
+  def self.add_handle(en, h_type, hx, hy, hz)
+    h_grp = en.add_group; h_grp.name = "Handle"
+    m_hand = apply_mat(Sketchup.active_model, "Handle_Metal", "", [192, 192, 192])
+    h_grp.material = m_hand
+    if h_type == "Knob"
+      box(h_grp.entities, hx - 10.mm, hy - 20.mm, hz - 10.mm, 20.mm, 20.mm, 20.mm)
+    elsif h_type == "Bar"
+      box(h_grp.entities, hx - 60.mm, hy - 15.mm, hz - 5.mm, 120.mm, 15.mm, 10.mm)
+    end
+  end
+
   # VERSION 12.5 - PRODUCTION READY
   def self.apply_mat(model, name, tex_path, color_rgb = [240, 240, 240])
     mats = model.materials
@@ -41,6 +149,17 @@ module SmartCabinetMaker
       m.texture = tex_path rescue nil
       m.texture.size = [1000.mm, 1000.mm] if m.texture
     end
+    
+    # Auto-classify for OpenCutList
+    type_str = "sheet_good"
+    if name.downcase.include?("leg") || name.downcase.include?("handle") || name.downcase.include?("metal")
+      type_str = "hardware"
+    end
+    
+    ["opencutlist", "OpenCutList"].each do |dict|
+      m.set_attribute(dict, "type", type_str)
+    end
+    
     m
   end
 
@@ -48,6 +167,7 @@ module SmartCabinetMaker
     return if @working
     @working = true
     model = Sketchup.active_model
+    @@dxf_parts = []
     begin
       # 1. Setup Materials
       g = data['global']
@@ -96,37 +216,100 @@ module SmartCabinetMaker
 
       sh, sz = (ct == "SideOverTop" ? [h, pl] : [h - 2*t, pl + t])
       # For Grooved back, all panels must go to full depth to have aligned grooves
-      panel_d = (bt == "Grooved" ? d : (bt == "Nailed" ? d - bp : d - bi))
+      panel_d = (bt == "Grooved" ? d : (bt == "Nailed" ? d - bp : d - bi - bp))
+      
+      # PRE-CALCULATE SHELVES AND HOLES
+      ns, s_inset = i_data['shelves'].to_i, i_data['shelf_inset'].to_f.mm
+      lb_step = (i_data['lb_step'] || 32).to_f.mm
+      lb_qty = i_data['lb_qty'] || "Full"
+      shelf_z_list = []
+      actual_hole_z_list = []
+      
+      lb_anchor = pl + t + 100.mm
+      
+      if ns > 0
+        ah = h - 2*t; sp = ah / (ns + 1).to_f
+        (1..ns).each do |i|
+          ideal_shelf_z = pl + t + i*sp - t/2.0
+          if i_data['line_boring']
+            k = ((ideal_shelf_z - 2.5.mm - lb_anchor) / lb_step).round
+            actual_hz = lb_anchor + k * lb_step
+            actual_shelf_z = actual_hz + 2.5.mm
+            actual_hole_z_list << actual_hz
+          else
+            actual_shelf_z = ideal_shelf_z
+          end
+          shelf_z_list << actual_shelf_z
+        end
+      end
       
       create_p = lambda do |nm, x, y, z, pw, pd_val, ph, mat, side_type = nil, is_horiz = false|
         return if pw <= 0 || pd_val <= 0 || ph <= 0
         p_grp = ent.add_group; p_grp.name = nm
         p_grp.material = mat
         
-        # Gola Notch logic for Sides (L Profile)
-        if is_gola && side_type && g_type == "L"
-          # Side with L notch at the top front
-          # Top part (shorter depth)
-          box(p_grp.entities, x, y + gd_val, z + h - gh, pw, pd_val - gd_val, gh)
-          # Bottom part (full depth)
-          box(p_grp.entities, x, y, z, pw, pd_val, h - gh)
-        elsif bt == "Grooved" && gd > 0 && (side_type || is_horiz)
-          # Grooved Panel logic (from previous version)
+        is_grooved = (bt == "Grooved" || bt == "Hybrid") && gd > 0
+        
+        part_data = {
+          name: nm,
+          length: (side_type ? ph : pw),
+          width: pd_val,
+          thickness: (side_type ? pw : ph),
+          holes: [],
+          grooves: []
+        }
+        if nm.downcase.include?("back panel")
+          part_data[:length] = pw
+          part_data[:width] = ph
+          part_data[:thickness] = pd_val
+        end
+
+        if side_type && is_gola && g_type == "L"
+          b_pts = []
+          b_pts << [0.mm, 0.mm]
+          b_pts << [0.mm, pd_val]
+          b_pts << [ph, pd_val]
+          if gr > 0 && gr <= gd_val && gr <= gh
+            r = gr
+            cy = gd_val - r
+            cz = ph - gh + r
+            b_pts << [ph, cy + r]
+            b_pts << [cz, cy + r]
+            (1..5).each do |i|
+              angle = i * (Math::PI / 2.0) / 6.0
+              b_pts << [cz - r * Math.sin(angle), cy + r * Math.cos(angle)]
+            end
+            b_pts << [cz - r, cy]
+          else
+            b_pts << [ph, gd_val]
+            b_pts << [ph - gh, gd_val]
+          end
+          b_pts << [ph - gh, 0.mm]
+          part_data[:boundary] = b_pts
+        end
+        
+        if side_type
+          if is_grooved
+            g_start_y = pd_val - bi - bp
+            g_end_y = pd_val - bi
+            if side_type == :l
+              draw_side_strip(p_grp.entities, x, y, y + pd_val, z, t - gd, ph, true, is_gola, g_type, gh, gd_val, gr)
+              draw_side_strip(p_grp.entities, x + t - gd, y, y + g_start_y, z, gd, ph, true, is_gola, g_type, gh, gd_val, gr)
+              draw_side_strip(p_grp.entities, x + t - gd, y + g_end_y, y + pd_val, z, gd, ph, false, is_gola, g_type, gh, gd_val, gr)
+            else
+              draw_side_strip(p_grp.entities, x + gd, y, y + pd_val, z, t - gd, ph, true, is_gola, g_type, gh, gd_val, gr)
+              draw_side_strip(p_grp.entities, x, y, y + g_start_y, z, gd, ph, true, is_gola, g_type, gh, gd_val, gr)
+              draw_side_strip(p_grp.entities, x, y + g_end_y, y + pd_val, z, gd, ph, false, is_gola, g_type, gh, gd_val, gr)
+            end
+          else
+            draw_side_strip(p_grp.entities, x, y, y + pd_val, z, pw, ph, true, is_gola, g_type, gh, gd_val, gr)
+          end
+        elsif bt == "Grooved" && gd > 0 && is_horiz
           g_start_y = pd_val - bi - bp
           g_end_y = pd_val - bi
-          if side_type == :l
-            box(p_grp.entities, x, y, z, t - gd, pd_val, ph)
-            box(p_grp.entities, x + t - gd, y, z, gd, g_start_y, ph)
-            box(p_grp.entities, x + t - gd, y + g_end_y, z, gd, bi, ph)
-          elsif side_type == :r
-            box(p_grp.entities, x + gd, y, z, t - gd, pd_val, ph)
-            box(p_grp.entities, x, y, z, gd, g_start_y, ph)
-            box(p_grp.entities, x, y + g_end_y, z, gd, bi, ph)
-          else # Horizontals
-            box(p_grp.entities, x, y, z + gd, pw, pd_val, t - gd)
-            box(p_grp.entities, x, y, z, pw, g_start_y, gd)
-            box(p_grp.entities, x, y + g_end_y, z, pw, bi, gd)
-          end
+          box(p_grp.entities, x, y, z + gd, pw, pd_val, t - gd)
+          box(p_grp.entities, x, y, z, pw, g_start_y, gd)
+          box(p_grp.entities, x, y + g_end_y, z, pw, bi, gd)
         else
           box(p_grp.entities, x, y, z, pw, pd_val, ph)
         end
@@ -134,18 +317,56 @@ module SmartCabinetMaker
         # Line Boring (Shelf Pin Holes)
         if side_type && i_data['line_boring']
           lb_f, lb_b = i_data['lb_offset_f'].to_f.mm, i_data['lb_offset_b'].to_f.mm
-          step = 32.mm; start_z = pl + t + 100.mm; end_z = pl + h - t - 100.mm
-          (start_z..end_z).step(step) do |hz|
-            sxs, svs = (side_type == :l ? x + t : x), (side_type == :l ? -1 : 1)
-            hole(p_grp.entities, [sxs, y + lb_f, hz], [svs, 0, 0], 2.5.mm, 12.mm, "C_BORE_5")
-            hole(p_grp.entities, [sxs, y + pd_val - lb_b, hz], [svs, 0, 0], 2.5.mm, 12.mm, "C_BORE_5")
+          holes_to_drill = []
+          
+          if lb_qty == "Full"
+            end_z = pl + h - t - 100.mm
+            (lb_anchor..end_z).step(lb_step) do |hz|
+              holes_to_drill << hz
+            end
+          else
+            qty = lb_qty.to_i
+            half_qty = qty / 2
+            actual_hole_z_list.each do |shz|
+              (-half_qty..half_qty).each do |k|
+                holes_to_drill << shz + k * lb_step
+              end
+            end
+            holes_to_drill.uniq!
           end
+          
+          holes_to_drill.each do |hz|
+            if hz > pl + t + 20.mm && hz < pl + h - t - 20.mm
+              sxs, svs = (side_type == :l ? x + t : x), (side_type == :l ? -1 : 1)
+              hole(p_grp.entities, [sxs, y + lb_f, hz], [svs, 0, 0], 2.5.mm, 12.mm, "C_BORE_5")
+              hole(p_grp.entities, [sxs, y + pd_val - lb_b, hz], [svs, 0, 0], 2.5.mm, 12.mm, "C_BORE_5")
+              part_data[:holes] << [hz - z, lb_f, 2.5.mm, 12.mm]
+              part_data[:holes] << [hz - z, pd_val - lb_b, 2.5.mm, 12.mm]
+            end
+          end
+        end
+
+        # Track Grooves for DXF
+        if side_type && is_grooved
+          gc_y = (g_start_y + g_end_y) / 2.0
+          part_data[:grooves] << [0, gc_y, ph, gc_y]
+        elsif bt == "Grooved" && gd > 0 && is_horiz
+          gc_y = (g_start_y + g_end_y) / 2.0
+          part_data[:grooves] << [0, gc_y, pw, gc_y]
         end
 
         # Joinery Screws (CNC Ready)
         if (side_type || is_horiz) && b['connector_type'] == "Screw_3.5"
           # Logic for assembly screws...
         end
+        
+        # Convert to component for OpenCutList
+        p_comp = p_grp.to_component
+        p_comp.definition.name = nm
+        p_comp.name = nm
+        p_comp.material = mat
+        @@dxf_parts << part_data
+        p_comp
       end
 
       # Construct Box
@@ -176,8 +397,16 @@ module SmartCabinetMaker
       
       # Plinth
       if pl > 0
-        create_p.call("Plinth Front", 0, b['plinthInsetF'].to_f.mm, 0, w, t, pl, m_plinth)
-        create_p.call("Plinth Back", 0, d - t - b['plinthInsetB'].to_f.mm, 0, w, t, pl, m_plinth)
+        base_type = g['base_type'] || "Box"
+        if base_type == "Box"
+          create_p.call("Plinth Front", 0, b['plinthInsetF'].to_f.mm, 0, w, t, pl, m_plinth)
+          create_p.call("Plinth Back", 0, d - t - b['plinthInsetB'].to_f.mm, 0, w, t, pl, m_plinth)
+        elsif base_type == "FrontLegs"
+          create_p.call("Plinth Front", 0, b['plinthInsetF'].to_f.mm, 0, w, t, pl, m_plinth)
+          draw_legs(ent, w, d, pl, b, t)
+        elsif base_type == "LegsOnly"
+          draw_legs(ent, w, d, pl, b, t)
+        end
       end
 
       # Back
@@ -186,19 +415,24 @@ module SmartCabinetMaker
           bw, bh = w - 2*t + 2*gd, h - (ct == "SideOverTop" ? 0 : 2*t) + 2*gd
           bz = pl + (ct == "SideOverTop" ? -gd : t - gd)
           create_p.call("Back Panel", t - gd, d - bi - bp, bz, bw, bp, bh, m_back)
+        elsif bt == "Hybrid"
+          bh = (ct == "SideOverTop" ? h : h - 2*t)
+          bz = pl + (ct == "SideOverTop" ? 0 : t)
+          create_p.call("Back Panel", t - gd, d - bi - bp, bz, w - 2*t + 2*gd, bp, bh, m_back)
         else
           create_p.call("Back Panel", 0, d - bp, pl, w, bp, h, m_back)
         end
       end
 
       # Shelves
-      ns, s_inset = i_data['shelves'].to_i, i_data['shelf_inset'].to_f.mm
       if ns > 0
-        ah = h - 2*t; sp = ah / (ns + 1).to_f
-        (1..ns).each { |i| create_p.call("Shelf #{i}", t + 2.mm, s_inset, pl + t + i*sp - t/2.0, w - 2*t - 4.mm, panel_d - s_inset, t, m_car) }
+        (1..ns).each do |i|
+          create_p.call("Shelf #{i}", t + 2.mm, s_inset, shelf_z_list[i-1], w - 2*t - 4.mm, panel_d - s_inset, t, m_car)
+        end
       end
 
       # Fronts (Doors/Drawers)
+      ht = f['handle_type']
       if f['front_type'] == "Doors" && f['count'].to_i > 0
         dc = f['count'].to_i; dh, dz = h - 2*gp, pl + gp
         dw = (dc == 1) ? w - 2*gp : (w - 3*gp) / 2.0
@@ -207,7 +441,31 @@ module SmartCabinetMaker
           d_grp = ent.add_group; d_grp.name = "Door_#{i+1}"
           d_grp.material = (i == 0 ? m_f1 : m_f2)
           box(d_grp.entities, dsx, -t, dz, dw, t, dh)
-          # Handle logic...
+          
+          door_part = {
+            name: "Door_#{i+1}",
+            length: dh,
+            width: dw,
+            thickness: t,
+            holes: [],
+            grooves: []
+          }
+          
+          if ht == "Knob" || ht == "Bar"
+            hx = (dc == 1) ? dsx + dw - 30.mm : (i == 0 ? dsx + dw - 30.mm : dsx + 30.mm)
+            hz_h = dz + dh / 2.0
+            add_handle(d_grp.entities, ht, hx, -t, hz_h)
+            
+            local_y = (dc == 1) ? dw - 30.mm : (i == 0 ? dw - 30.mm : 30.mm)
+            if ht == "Knob"
+              door_part[:holes] << [dh / 2.0, local_y, 2.to_mm, 15.mm]
+            elsif ht == "Bar"
+              door_part[:holes] << [dh / 2.0 - 48.mm, local_y, 2.to_mm, 15.mm]
+              door_part[:holes] << [dh / 2.0 + 48.mm, local_y, 2.to_mm, 15.mm]
+            end
+          end
+          
+          @@dxf_parts << door_part
         end
       elsif f['front_type'] == "Drawers" && f['count'].to_i > 0
         dc = f['count'].to_i; gap = 3.mm
@@ -231,6 +489,37 @@ module SmartCabinetMaker
           f_grp.material = m_f1
           box(f_grp.entities, gp, -t, dz, w - 2*gp, t, drw_h_total)
           
+          f_part = {
+            name: "Drawer_Front_#{i+1}",
+            length: w - 2*gp,
+            width: drw_h_total,
+            thickness: t,
+            holes: [],
+            grooves: []
+          }
+          
+          if ht == "Knob" || ht == "Bar"
+            hx = w / 2.0
+            hz_h = dz + drw_h_total / 2.0
+            add_handle(f_grp.entities, ht, hx, -t, hz_h)
+            
+            cx = (w - 2*gp) / 2.0
+            cy = drw_h_total / 2.0
+            if ht == "Knob"
+              f_part[:holes] << [cx, cy, 2.to_mm, 15.mm]
+            elsif ht == "Bar"
+              f_part[:holes] << [cx - 48.mm, cy, 2.to_mm, 15.mm]
+              f_part[:holes] << [cx + 48.mm, cy, 2.to_mm, 15.mm]
+            end
+          end
+          
+          @@dxf_parts << f_part
+          
+          f_comp = f_grp.to_component
+          f_comp.definition.name = "Drawer_Front_#{i+1}"
+          f_comp.name = "Drawer_Front_#{i+1}"
+          f_comp.material = m_f1
+          
           # 2. Drawer Box (Construction)
           box_w = int_w - 2 * rg; box_h = drw_h_total - 30.mm
           box_d = int_d - db_gap; box_x = t + rg
@@ -247,6 +536,11 @@ module SmartCabinetMaker
           box(b_ent, box_x + dt, box_d - dt, dz, box_w - 2*dt, dt, box_h)
           # Drawer Bottom
           box(b_ent, box_x + dt - dbg, dt, dz + dbi, box_w - 2*dt + 2*dbg, box_d - 2*dt, dbth)
+          
+          b_comp = b_grp.to_component
+          b_comp.definition.name = "Drawer_Box_#{i+1}"
+          b_comp.name = "Drawer_Box_#{i+1}"
+          b_comp.material = m_car
         end
       end
     rescue => e
@@ -342,22 +636,454 @@ module SmartCabinetMaker
     end
   end
 
-  # OBSERVER FOR TRANSPARENCY
-  class CabSelectionObserver < Sketchup::SelectionObserver
-    def onSelectionBulkChange(selection)
-      m = Sketchup.active_model
-      m.entities.grep(Sketchup::Group).each do |g|
-        if g.valid? && g.get_attribute("SmartCabinet", "IsSmart")
-          is_sel = selection.contains?(g)
-          # Apply transparency to the main group and all sub-groups (panels)
-          g.entities.grep(Sketchup::Group).each { |p| p.material.alpha = (is_sel ? 0.3 : 1.0) rescue nil }
+  # =========================================================================
+  # SMART VISION MODULE - Transparency Management
+  # Replaces the old CabSelectionObserver with proper save/restore logic
+  # =========================================================================
+  module SmartVision
+    extend self
+
+    @original_states = {}   # entity_id => { material:, faces: [] }
+    @ghost_active = false
+    @hidden_doors = []
+
+    DOOR_KEYWORDS = [
+      'door', 'front', 'drawer_front', 'πόρτα', 'πορτα',
+      'πρόσοψη', 'προσοψη', 'μέτωπο', 'μετωπο', 'facade'
+    ].freeze
+
+    # ----- GHOST MODE TOGGLE -----
+    def toggle_ghost_mode
+      model = Sketchup.active_model
+      if @ghost_active
+        restore_all(model)
+        @ghost_active = false
+        Sketchup.status_text = "Smart Vision: Ghost OFF"
+      else
+        targets = get_smart_cabinets(model)
+        return UI.messagebox("Δεν βρέθηκαν Smart Cabinets.") if targets.empty?
+        model.start_operation('Ghost Mode ON', true)
+        targets.each { |cab| ghost_entity(cab, model, 0.35) }
+        model.commit_operation
+        @ghost_active = true
+        Sketchup.status_text = "Smart Vision: Ghost ON — πατήστε ξανά για επαναφορά"
+      end
+    end
+
+    # ----- HIDE / SHOW DOORS -----
+    def toggle_hide_doors
+      model = Sketchup.active_model
+      if @hidden_doors.any?
+        model.start_operation('Show Doors', true)
+        @hidden_doors.each { |e| e.hidden = false if e.valid? }
+        model.commit_operation
+        @hidden_doors.clear
+        Sketchup.status_text = "Smart Vision: Πόρτες εμφανείς"
+      else
+        targets = get_smart_cabinets(model)
+        return UI.messagebox("Δεν βρέθηκαν Smart Cabinets.") if targets.empty?
+        found = []
+        targets.each { |cab| find_doors(cab, found) }
+        if found.empty?
+          UI.messagebox("Δεν βρέθηκαν πόρτες/προσόψεις.\nΤο plugin ψάχνει ονόματα: door, front, drawer_front, πόρτα κλπ.")
+          return
         end
+        model.start_operation('Hide Doors', true)
+        found.each { |e| e.hidden = true; @hidden_doors << e }
+        model.commit_operation
+        Sketchup.status_text = "Smart Vision: #{found.length} πόρτες κρύφτηκαν"
+      end
+    end
+
+    # ----- SMART LENS TOOL ACTIVATOR -----
+    def activate_lens
+      Sketchup.active_model.select_tool(SmartLensTool.new)
+    end
+
+    # ----- HELPERS -----
+    def get_smart_cabinets(model)
+      source = model.selection.empty? ? model.active_entities : model.selection
+      source.select { |e|
+        (e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance)) &&
+        e.get_attribute("SmartCabinet", "IsSmart")
+      }
+    end
+
+    def ghost_entity(entity, model, alpha)
+      id = entity.entityID
+      unless @original_states.key?(id)
+        @original_states[id] = { material: entity.material, sub: [] }
+      end
+      # Ghost the main group
+      gm = model.materials.add("_sv_#{id}")
+      gm.color = entity.material ? entity.material.color : Sketchup::Color.new(200,200,200)
+      gm.alpha = alpha
+      entity.material = gm
+      # Ghost all sub-groups and components (panels)
+      entity.entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }.each do |panel|
+        pid = panel.entityID
+        @original_states[id][:sub] << { id: pid, material: panel.material }
+        pm = model.materials.add("_sv_#{pid}")
+        pm.color = panel.material ? panel.material.color : Sketchup::Color.new(200,200,200)
+        pm.alpha = alpha
+        panel.material = pm
+      end
+    end
+
+    def restore_all(model)
+      model.start_operation('Restore Materials', true)
+      @original_states.each do |eid, state|
+        ent = find_entity(model, eid)
+        next unless ent && ent.valid?
+        ent.material = state[:material]
+        state[:sub].each do |sub_state|
+          sub = find_entity(model, sub_state[:id])
+          sub.material = sub_state[:material] if sub && sub.valid?
+        end
+      end
+      # Clean up temporary materials
+      model.materials.select { |m| m.name.start_with?("_sv_") }.each do |m|
+        model.materials.remove(m) rescue nil
+      end
+      model.commit_operation
+      @original_states.clear
+    end
+
+    def find_entity(model, target_id)
+      _search(model.active_entities, target_id)
+    end
+
+    def _search(entities, tid)
+      entities.each do |e|
+        return e if e.entityID == tid
+        if e.is_a?(Sketchup::Group)
+          r = _search(e.entities, tid)
+          return r if r
+        elsif e.is_a?(Sketchup::ComponentInstance)
+          r = _search(e.definition.entities, tid)
+          return r if r
+        end
+      end
+      nil
+    end
+
+    def find_doors(entity, results)
+      subs = entity.entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }
+      subs.each do |s|
+        name = s.respond_to?(:definition) ? (s.name.to_s + " " + s.definition.name.to_s) : s.name.to_s
+        if DOOR_KEYWORDS.any? { |kw| name.downcase.include?(kw) }
+          results << s
+        else
+          find_doors(s, results) if s.is_a?(Sketchup::Group)
+        end
+      end
+    end
+  end # SmartVision
+
+  # =========================================================================
+  # SMART LENS TOOL - Hover-based transparency (InteriorCAD style)
+  # =========================================================================
+  class SmartLensTool
+    def initialize
+      @last_cab = nil
+      @saved = {}   # cab_entity_id => { material:, panels: [{entity:, material:}] }
+      @alpha = 0.3
+    end
+
+    def activate
+      Sketchup.status_text = "Smart Lens: hover σε ερμάριο → διαφάνεια | Click = κλείδωμα | ESC = έξοδος"
+    end
+
+    def deactivate(view)
+      # Restore everything on exit
+      @saved.each { |_id, st| restore_cab(st, view.model) }
+      @saved.clear
+      cleanup(view.model)
+      view.invalidate
+    end
+
+    def onCancel(_reason, view)
+      view.model.select_tool(nil)
+    end
+
+    def onKeyDown(key, _repeat, _flags, view)
+      view.model.select_tool(nil) if key == 27 # ESC
+    end
+
+    def onMouseMove(_flags, x, y, view)
+      ph = view.pick_helper
+      ph.do_pick(x, y)
+      picked = ph.best_picked
+      cab = find_smart_parent(picked, view.model)
+
+      if cab != @last_cab
+        # Restore previous (unless locked by click)
+        if @last_cab && @last_cab.valid?
+          id = @last_cab.entityID
+          if @saved[id] && !@saved[id][:locked]
+            restore_cab(@saved.delete(id), view.model)
+            cleanup(view.model)
+          end
+        end
+        # Ghost new
+        if cab && cab.valid?
+          id = cab.entityID
+          unless @saved.key?(id)
+            @saved[id] = save_and_ghost(cab, view.model)
+          end
+          Sketchup.status_text = "Smart Lens: #{cab.name}"
+        else
+          Sketchup.status_text = "Smart Lens: hover σε ερμάριο..."
+        end
+        @last_cab = cab
+        view.invalidate
+      end
+    end
+
+    def onLButtonDown(_flags, _x, _y, _view)
+      if @last_cab && @last_cab.valid?
+        id = @last_cab.entityID
+        @saved[id][:locked] = true if @saved[id]
+        Sketchup.status_text = "Smart Lens: Κλειδωμένο σε #{@last_cab.name} — ESC για έξοδο"
+        @last_cab = nil
+      end
+    end
+
+    def getExtents
+      Sketchup.active_model.bounds
+    end
+
+    private
+
+    def find_smart_parent(entity, model)
+      return nil unless entity
+      current = entity
+      # Walk up to group/component
+      if current.is_a?(Sketchup::Face) || current.is_a?(Sketchup::Edge)
+        parent = current.parent
+        if parent.is_a?(Sketchup::ComponentDefinition)
+          current = parent.instances.first
+        elsif parent.respond_to?(:entities)
+          # Try to find enclosing group or component
+          model.active_entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }.each do |g|
+            return g if g.get_attribute("SmartCabinet", "IsSmart") && g.entities.include?(current) rescue false
+          end
+        end
+        return nil unless current
+      end
+      # Check if it's a smart cabinet or inside one
+      if (current.is_a?(Sketchup::Group) || current.is_a?(Sketchup::ComponentInstance)) && current.get_attribute("SmartCabinet", "IsSmart")
+        return current
+      end
+      # Check parent groups and components
+      model.active_entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }.each do |g|
+        if g.get_attribute("SmartCabinet", "IsSmart")
+          g.entities.each do |sub|
+            return g if sub == current || (sub.respond_to?(:entityID) && sub.entityID == current.entityID)
+          end
+        end
+      end
+      nil
+    end
+
+    def save_and_ghost(cab, model)
+      state = { material: cab.material, panels: [], locked: false }
+      # Ghost main group
+      gm = model.materials.add("_lens_#{cab.entityID}")
+      gm.color = cab.material ? cab.material.color : Sketchup::Color.new(180,200,220)
+      gm.alpha = @alpha
+      cab.material = gm
+      # Ghost panels (groups and components)
+      cab.entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }.each do |p|
+        state[:panels] << { entity: p, material: p.material }
+        pm = model.materials.add("_lens_#{p.entityID}")
+        pm.color = p.material ? p.material.color : Sketchup::Color.new(180,200,220)
+        pm.alpha = @alpha
+        p.material = pm
+      end
+      state
+    end
+
+    def restore_cab(state, model)
+      return unless state
+      # Find the cabinet by checking if any panel is still valid
+      state[:panels].each do |ps|
+        ps[:entity].material = ps[:material] if ps[:entity].valid?
+      end
+    end
+
+    def cleanup(model)
+      model.materials.select { |m| m.name.start_with?("_lens_") }.each do |m|
+        model.materials.remove(m) rescue nil
       end
     end
   end
 
+  # AUTO-TRANSPARENCY OBSERVER
+  # Automatically ghosts selected cabinets and restores deselected ones
+  class CabSelectionObserver < Sketchup::SelectionObserver
+    def initialize
+      @ghosted = {}  # entity_id => { material:, sub: [{id:, material:}] }
+    end
+
+    # Called when clicking on empty space (full deselect)
+    def onSelectionCleared(selection)
+      restore_all_ghosted
+    end
+
+    def onSelectionBulkChange(selection)
+      model = Sketchup.active_model
+      
+      # Find currently selected smart cabinets
+      selected_ids = {}
+      model.entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }.each do |g|
+        if g.valid? && g.get_attribute("SmartCabinet", "IsSmart") && selection.contains?(g)
+          selected_ids[g.entityID] = g
+        end
+      end
+
+      # Restore cabinets that are no longer selected
+      restore_deselected(selected_ids)
+
+      # Ghost newly selected cabinets
+      selected_ids.each do |eid, cab|
+        next if @ghosted.key?(eid)
+        ghost_cab(cab, model)
+      end
+    end
+
+    private
+
+    def restore_all_ghosted
+      model = Sketchup.active_model
+      return if @ghosted.empty?
+      @ghosted.each do |eid, state|
+        ent = SmartVision._search(model.active_entities, eid)
+        next unless ent && ent.valid?
+        ent.material = state[:material]
+        state[:sub].each do |ss|
+          sub = SmartVision._search(model.active_entities, ss[:id])
+          sub.material = ss[:material] if sub && sub.valid?
+        end
+      end
+      @ghosted.clear
+      model.materials.select { |m| m.name.start_with?("_auto_") }.each { |m| model.materials.remove(m) rescue nil }
+    end
+
+    def restore_deselected(selected_ids)
+      model = Sketchup.active_model
+      @ghosted.keys.each do |eid|
+        unless selected_ids.key?(eid)
+          state = @ghosted.delete(eid)
+          ent = SmartVision._search(model.active_entities, eid)
+          next unless ent && ent.valid?
+          ent.material = state[:material]
+          state[:sub].each do |ss|
+            sub = SmartVision._search(model.active_entities, ss[:id])
+            sub.material = ss[:material] if sub && sub.valid?
+          end
+        end
+      end
+      model.materials.select { |m| m.name.start_with?("_auto_") }.each { |m| model.materials.remove(m) rescue nil } if @ghosted.empty?
+    end
+
+    def ghost_cab(cab, model)
+      eid = cab.entityID
+      state = { material: cab.material, sub: [] }
+      gm = model.materials.add("_auto_#{eid}")
+      gm.color = cab.material ? cab.material.color : Sketchup::Color.new(200,200,200)
+      gm.alpha = 0.35
+      cab.material = gm
+      cab.entities.select { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }.each do |panel|
+        pid = panel.entityID
+        state[:sub] << { id: pid, material: panel.material }
+        pm = model.materials.add("_auto_#{pid}")
+        pm.color = panel.material ? panel.material.color : Sketchup::Color.new(200,200,200)
+        pm.alpha = 0.35
+        panel.material = pm
+      end
+      @ghosted[eid] = state
+    end
+  end
+
+  def self.write_dxf(file_path, name, w_val, l_val, holes, grooves = [], boundary = [])
+    lines = []
+    lines << "0"
+    lines << "SECTION"
+    lines << "2"
+    lines << "ENTITIES"
+    
+    draw_line = lambda do |x1, y1, x2, y2, layer = "CUT"|
+      lines << "0"
+      lines << "LINE"
+      lines << "8"
+      lines << layer
+      lines << "10"
+      lines << sprintf("%.3f", x1.to_mm)
+      lines << "20"
+      lines << sprintf("%.3f", y1.to_mm)
+      lines << "30"
+      lines << "0.0"
+      lines << "11"
+      lines << sprintf("%.3f", x2.to_mm)
+      lines << "21"
+      lines << sprintf("%.3f", y2.to_mm)
+      lines << "31"
+      lines << "0.0"
+    end
+    
+    if boundary && !boundary.empty?
+      (0...boundary.length).each do |i|
+        pt1 = boundary[i]
+        pt2 = boundary[(i + 1) % boundary.length]
+        draw_line.call(pt1[0], pt1[1], pt2[0], pt2[1], "CUT")
+      end
+    else
+      draw_line.call(0, 0, w_val, 0)
+      draw_line.call(w_val, 0, w_val, l_val)
+      draw_line.call(w_val, l_val, 0, l_val)
+      draw_line.call(0, l_val, 0, 0)
+    end
+    
+    holes.each do |h|
+      hx, hy, r, d = h
+      lines << "0"
+      lines << "CIRCLE"
+      lines << "8"
+      lines << "DRILL_#{sprintf("%g", (r*2).to_mm)}"
+      lines << "10"
+      lines << sprintf("%.3f", hx.to_mm)
+      lines << "20"
+      lines << sprintf("%.3f", hy.to_mm)
+      lines << "30"
+      lines << "0.0"
+      lines << "40"
+      lines << sprintf("%.3f", r.to_mm)
+    end
+    
+    grooves.each do |g|
+      gx1, gy1, gx2, gy2 = g
+      draw_line.call(gx1, gy1, gx2, gy2, "GROOVE")
+    end
+    
+    lines << "0"
+    lines << "ENDSEC"
+    lines << "0"
+    lines << "EOF"
+    
+    File.write(file_path, lines.join("\n"))
+  end
+
   def self.show_dialog
-    o = { dialog_title: "Smart Cabinet Maker Pro v12.0", width: 800, height: 700, style: UI::HtmlDialog::STYLE_DIALOG }
+    o = { 
+      dialog_title: "Smart Cabinet Maker Pro v13.4", 
+      preferences_key: "SmartCabinetMakerPro_UI", 
+      width: 520, 
+      height: 600, 
+      left: 1200, 
+      top: 400, 
+      style: UI::HtmlDialog::STYLE_DIALOG 
+    }
     @dialog = UI::HtmlDialog.new(o)
     @dialog.set_file(File.join(File.dirname(__FILE__), 'ui_v13', 'index.html'))
     @dialog.add_action_callback("buildCabinet") { |c, j| self.build_cabinet(JSON.parse(j)) }
@@ -365,17 +1091,39 @@ module SmartCabinetMaker
       path = UI.openpanel("Επιλογή Υλικού (Texture)", "", "*.jpg;*.png;*.bmp;*.tif;*.png")
       @dialog.execute_script("setFilePath('#{id}', '#{path.gsub('\\', '/')}')") if path
     }
+    # Smart Vision callbacks from UI buttons
+    @dialog.add_action_callback("ghostMode") { |c, _| SmartVision.toggle_ghost_mode }
+    @dialog.add_action_callback("hideDoors") { |c, _| SmartVision.toggle_hide_doors }
+    @dialog.add_action_callback("smartLens") { |c, _| SmartVision.activate_lens }
+    @dialog.add_action_callback("resizeTool") { |c, _| Sketchup.active_model.select_tool(SmartHandleTool.new) }
+    @dialog.add_action_callback("exportDXF") { |c, _|
+      if !defined?(@@dxf_parts) || !@@dxf_parts || @@dxf_parts.empty?
+        UI.messagebox("Σχεδιάστε πρώτα ένα ερμάριο!")
+        next
+      end
+      
+      folder = UI.select_directory(title: "Επιλέξτε φάκελο αποθήκευσης DXF")
+      if folder
+        begin
+          count = 0
+          @@dxf_parts.each do |p|
+            clean_name = p[:name].gsub(" ", "_").gsub(/[^0-9A-Za-z_]/, "")
+            file_path = File.join(folder, "#{clean_name}.dxf")
+            self.write_dxf(file_path, p[:name], p[:length], p[:width], p[:holes], p[:grooves], p[:boundary])
+            count += 1
+          end
+          UI.messagebox("Επιτυχής εξαγωγή #{count} αρχείων DXF στο φάκελο:\n#{folder}")
+        rescue => e
+          UI.messagebox("Σφάλμα κατά την εξαγωγή: #{e.message}")
+        end
+      end
+    }
     @dialog.show
-    
-    # Init Observer
-    Sketchup.active_model.selection.add_observer(CabSelectionObserver.new) unless @obs_init
-    @obs_init = true
   end
 
   unless file_loaded?(__FILE__)
     m = UI.menu("Plugins").add_submenu("Smart Cabinet Maker Pro")
     m.add_item("Configurator") { self.show_dialog }
-    m.add_item("Resize Tool") { Sketchup.active_model.select_tool(SmartHandleTool.new) }
     file_loaded(__FILE__)
   end
 end
