@@ -73,13 +73,13 @@
       <div style="margin-top:auto; padding:12px; border-top:1px solid var(--border-color);">
         <div style="font-size:10px; font-weight:900; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:1px;">Tools & Vision</div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">
-          <button onclick="window.location.href='skp:ghostMode'" style="padding:8px 4px; background:#f0f4ff; border:1.5px solid #c7d2fe; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#4f46e5;" title="Ghost Mode - Ημιδιαφάνεια">👻 Ghost</button>
-          <button onclick="window.location.href='skp:hideDoors'" style="padding:8px 4px; background:#fef3c7; border:1.5px solid #fcd34d; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#92400e;" title="Hide/Show Πόρτες">🚪 Doors</button>
-          <button onclick="window.location.href='skp:smartLens'" style="padding:8px 4px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#065f46;" title="Smart Lens Tool">🔍 Lens</button>
-          <button onclick="window.location.href='skp:resizeTool'" style="padding:8px 4px; background:#fdf4ff; border:1.5px solid #f0abfc; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#a21caf;" title="Εργαλείο Αλλαγής Διαστάσεων">📏 Resize</button>
+          <button onclick="callRuby('ghostMode')" style="padding:8px 4px; background:#f0f4ff; border:1.5px solid #c7d2fe; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#4f46e5;" title="Ghost Mode - Ημιδιαφάνεια">👻 Ghost</button>
+          <button onclick="callRuby('hideDoors')" style="padding:8px 4px; background:#fef3c7; border:1.5px solid #fcd34d; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#92400e;" title="Hide/Show Πόρτες">🚪 Doors</button>
+          <button onclick="callRuby('smartLens')" style="padding:8px 4px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#065f46;" title="Smart Lens Tool">🔍 Lens</button>
+          <button onclick="callRuby('resizeTool')" style="padding:8px 4px; background:#fdf4ff; border:1.5px solid #f0abfc; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#a21caf;" title="Εργαλείο Αλλαγής Διαστάσεων">📏 Resize</button>
         </div>
         <button class="btn-build" onclick="buildCabinet()" style="margin-bottom: 6px;">Build 3D</button>
-        <button class="btn-build" onclick="window.location.href='skp:exportDXF'" style="background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">📐 Export DXF</button>
+        <button class="btn-build" onclick="callRuby('exportDXF')" style="background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">📐 Export DXF</button>
       </div>
     </div>
     <div class="main-content">
@@ -151,7 +151,24 @@
         <div class="section-header">Πόμολα & Gola Profile</div>
         <div class="field"><div class="label-zone"><span class="label-main">Είδος Λαβής</span></div><select id="handle_type" onchange="toggleGolaSettings()"><option value="Bar">Bar (2 τρύπες)</option><option value="Knob">Knob (1 τρύπα)</option><option value="Gola">Gola Profile</option><option value="None">None</option></select></div>
         <div id="handle_params_section"><div class="property-grid"><div class="grid-item"><label>Διάκεντρο</label><input type="number" id="handle_cc" value="128"></div><div class="grid-item"><label>Offset X</label><input type="number" id="handle_offset_x" value="40"></div><div class="grid-item"><label>Offset Z</label><input type="number" id="handle_offset_z" value="40"></div></div></div>
-        <div id="gola_params_section" style="display:none"><div class="property-grid"><div class="grid-item"><label>Προφίλ</label><select id="gola_type"><option value="L">L-Profile</option><option value="U">U-Profile</option></select></div><div class="grid-item"><label>Ύψος (H)</label><input type="number" id="gola_size" value="55"></div><div class="grid-item"><label>Βάθος (D)</label><input type="number" id="gola_depth" value="30"></div><div class="grid-item"><label>Radius</label><input type="number" id="gola_radius" value="0"></div></div></div>
+        <div id="gola_params_section" style="display:none">
+          <div class="field" style="margin-bottom:12px;">
+            <div class="label-zone"><span class="label-main">Gola Hardware</span></div>
+            <select id="gola_preset" onchange="applyGolaPreset()" style="width:200px;">
+              <option value="custom">-- Custom / Χειροκίνητα --</option>
+              <option value="volpato_l">Volpato L-Profile (56x27mm)</option>
+              <option value="volpato_c">Volpato C-Profile (73x27mm)</option>
+              <option value="dtc_l">DTC L-Profile (56x27mm)</option>
+              <option value="dtc_c">DTC C-Profile (74x27mm)</option>
+            </select>
+          </div>
+          <div class="property-grid">
+            <div class="grid-item"><label>Προφίλ</label><select id="gola_type"><option value="L">L-Profile</option><option value="U">U-Profile</option></select></div>
+            <div class="grid-item"><label>Ύψος (H)</label><input type="number" id="gola_size" value="57"></div>
+            <div class="grid-item"><label>Βάθος (D)</label><input type="number" id="gola_depth" value="26"></div>
+            <div class="grid-item"><label>Radius</label><input type="number" id="gola_radius" value="5"></div>
+          </div>
+        </div>
       </div>
       <div id="materials" class="tabcontent">
         <h3>Βιβλιοθήκη Υλικών</h3>
@@ -170,6 +187,37 @@
     </div>
   </div>
   <script>
+    const GOLA_PRESETS = {
+        volpato_l: { type: "L", size: 57, depth: 26, radius: 5 },
+        volpato_c: { type: "U", size: 73, depth: 27, radius: 5 },
+        dtc_l: { type: "L", size: 57, depth: 26, radius: 5 },
+        dtc_c: { type: "U", size: 74, depth: 27, radius: 5 }
+    };
+
+    function callRuby(callbackName, ...args) {
+        if (typeof sketchup !== 'undefined' && sketchup[callbackName]) {
+            // Modern CEF bridge
+            sketchup[callbackName](...args);
+        } else {
+            // Legacy fallback
+            var url = 'skp:' + callbackName;
+            if (args.length > 0) {
+                url += '@' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join('@');
+            }
+            window.location.href = url;
+        }
+    }
+
+    function applyGolaPreset() {
+        const v = document.getElementById("gola_preset").value;
+        if (v && GOLA_PRESETS[v]) {
+            const p = GOLA_PRESETS[v];
+            document.getElementById("gola_type").value = p.type;
+            document.getElementById("gola_size").value = p.size;
+            document.getElementById("gola_depth").value = p.depth;
+            document.getElementById("gola_radius").value = p.radius;
+        }
+    }
     function openTab(evt, tabName) {
         var i, tc, tl; tc = document.getElementsByClassName("tabcontent"); for (i=0; i<tc.length; i++) tc[i].style.display = "none";
         tl = document.getElementsByClassName("tablink"); for (i=0; i<tl.length; i++) tl[i].className = tl[i].className.replace(" active", "");
@@ -177,7 +225,7 @@
     }
     function updateDefaults() { var t = document.getElementById('cab_type').value; if (t === "Base") { document.getElementById('height').value = 760; document.getElementById('depth').value = 560; } }
     function toggleGolaSettings() { var v = document.getElementById('handle_type').value; document.getElementById('gola_params_section').style.display = (v === 'Gola') ? 'block' : 'none'; document.getElementById('handle_params_section').style.display = (v === 'Gola' || v === 'None') ? 'none' : 'block'; }
-    function browseFile(id) { window.location.href = 'skp:browseFile@' + id; }
+    function browseFile(id) { callRuby('browseFile', id); }
     function setFilePath(id, path) { document.getElementById(id).value = path; }
     function getVal(id) { return document.getElementById(id).value; }
     function collectData() { return { 
@@ -187,10 +235,112 @@
         interior: { v_dividers: parseInt(document.getElementById('v_dividers').value), shelves: parseInt(document.getElementById('shelves').value), line_boring: document.getElementById('line_boring').checked, lb_offset_f: parseFloat(document.getElementById('lb_offset_f').value), lb_offset_b: parseFloat(document.getElementById('lb_offset_b').value), lb_step: parseFloat(document.getElementById('lb_step').value), lb_qty: document.getElementById('lb_qty').value, shelf_inset: parseFloat(document.getElementById('shelf_inset').value), zone_split: document.getElementById('zone_split').value },
         materials: { mat_carcass_name: document.getElementById('mat_carcass_name').value, mat_carcass_pvc: document.getElementById('mat_carcass_pvc').value, mat_carcass_tex: document.getElementById('mat_carcass_tex').value, mat_front1_name: document.getElementById('mat_front1_name').value, mat_front1_pvc: document.getElementById('mat_front1_pvc').value, mat_front1_tex: document.getElementById('mat_front1_tex').value, mat_front2_name: document.getElementById('mat_front2_name').value, mat_front2_pvc: document.getElementById('mat_front2_pvc').value, mat_front2_tex: document.getElementById('mat_front2_tex').value, mat_back_name: document.getElementById('mat_back_name').value, mat_plinth_name: document.getElementById('mat_plinth_name').value }
     }; }
-    function buildCabinet() { window.location.href = 'skp:buildCabinet@' + JSON.stringify(collectData()); }
-    function savePreset() { window.location.href = 'skp:savePreset@' + document.getElementById('preset_name').value + '@' + JSON.stringify(collectData()); }
-    function loadPreset() { window.location.href = 'skp:loadPreset@' + document.getElementById('preset_selector').value; }
-    window.onload = function() { window.location.href = 'skp:fetchPresets'; };
+    function buildCabinet() { callRuby('buildCabinet', JSON.stringify(collectData())); }
+    function savePreset() { callRuby('savePreset', document.getElementById('preset_name').value, JSON.stringify(collectData())); }
+    function loadPreset() { callRuby('loadPreset', document.getElementById('preset_selector').value); }
+
+    function updatePresetsList(presets) {
+        const sel = document.getElementById("preset_selector");
+        sel.innerHTML = '<option value="">-- Πρότυπα --</option>';
+        for (const name in presets) {
+            if (presets.hasOwnProperty(name)) {
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                sel.appendChild(opt);
+            }
+        }
+    }
+
+    function loadPresetData(data) {
+        if (!data) return;
+        
+        // Globals
+        if (data.global) {
+            if (data.global.materialThickness !== undefined) document.getElementById('mat_th').value = data.global.materialThickness;
+            if (data.global.backThickness !== undefined) document.getElementById('back_th').value = data.global.backThickness;
+            if (data.global.gap !== undefined) document.getElementById('gap').value = data.global.gap;
+            if (data.global.base_type !== undefined) document.getElementById('base_type').value = data.global.base_type;
+            if (data.global.plinthHeight !== undefined) document.getElementById('plinth').value = data.global.plinthHeight;
+            if (data.global.pvcThickness !== undefined) document.getElementById('pvc_th').value = data.global.pvcThickness;
+        }
+        
+        // Box
+        if (data.box) {
+            if (data.box.cab_type !== undefined) {
+                document.getElementById('cab_type').value = data.box.cab_type;
+                updateDefaults();
+            }
+            if (data.box.width !== undefined) document.getElementById('width').value = data.box.width;
+            if (data.box.height !== undefined) document.getElementById('height').value = data.box.height;
+            if (data.box.depth !== undefined) document.getElementById('depth').value = data.box.depth;
+            if (data.box.backType !== undefined) document.getElementById('back_type').value = data.box.backType;
+            if (data.box.topType !== undefined) document.getElementById('top_type').value = data.box.topType;
+            if (data.box.railWidth !== undefined) document.getElementById('rail_width').value = data.box.railWidth;
+            if (data.box.connType !== undefined) document.getElementById('conn_type').value = data.box.connType;
+            if (data.box.backInset !== undefined) document.getElementById('back_inset').value = data.box.backInset;
+            if (data.box.grooveDepth !== undefined) document.getElementById('groove_depth').value = data.box.grooveDepth;
+            if (data.box.plinthInsetF !== undefined) document.getElementById('plinth_inset_f').value = data.box.plinthInsetF;
+            if (data.box.plinthInsetB !== undefined) document.getElementById('plinth_inset_b').value = data.box.plinthInsetB;
+            if (data.box.connector_type !== undefined) document.getElementById('connector_type').value = data.box.connector_type;
+            if (data.box.connector_mode !== undefined) document.getElementById('connector_mode').value = data.box.connector_mode;
+            if (data.box.connector_val !== undefined) document.getElementById('connector_val').value = data.box.connector_val;
+            if (data.box.connector_offset !== undefined) document.getElementById('connector_offset').value = data.box.connector_offset;
+        }
+        
+        // Front
+        if (data.front) {
+            let front_type = data.front.front_type !== undefined ? data.front.front_type : data.front.type;
+            if (front_type !== undefined) document.getElementById('front_type').value = front_type;
+            if (data.front.overlay_type !== undefined) document.getElementById('overlay_type').value = data.front.overlay_type;
+            if (data.front.count !== undefined) document.getElementById('front_count').value = data.front.count;
+            if (data.front.hingeType !== undefined) document.getElementById('hinge_type').value = data.front.hingeType;
+            if (data.front.hingeOffset !== undefined) document.getElementById('hinge_offset').value = data.front.hingeOffset;
+            
+            let handle_type = data.front.handle_type !== undefined ? data.front.handle_type : data.front.handles;
+            if (handle_type !== undefined) {
+                document.getElementById('handle_type').value = handle_type;
+                toggleGolaSettings();
+            }
+            if (data.front.handle_cc !== undefined) document.getElementById('handle_cc').value = data.front.handle_cc;
+            if (data.front.handle_offset_x !== undefined) document.getElementById('handle_offset_x').value = data.front.handle_offset_x;
+            if (data.front.handle_offset_z !== undefined) document.getElementById('handle_offset_z').value = data.front.handle_offset_z;
+            if (data.front.gola_size !== undefined) document.getElementById('gola_size').value = data.front.gola_size;
+            if (data.front.gola_depth !== undefined) document.getElementById('gola_depth').value = data.front.gola_depth;
+            if (data.front.gola_radius !== undefined) document.getElementById('gola_radius').value = data.front.gola_radius;
+            if (data.front.gola_type !== undefined) document.getElementById('gola_type').value = data.front.gola_type;
+        }
+        
+        // Interior
+        if (data.interior) {
+            if (data.interior.v_dividers !== undefined) document.getElementById('v_dividers').value = data.interior.v_dividers;
+            if (data.interior.shelves !== undefined) document.getElementById('shelves').value = data.interior.shelves;
+            if (data.interior.line_boring !== undefined) document.getElementById('line_boring').checked = data.interior.line_boring;
+            if (data.interior.lb_offset_f !== undefined) document.getElementById('lb_offset_f').value = data.interior.lb_offset_f;
+            if (data.interior.lb_offset_b !== undefined) document.getElementById('lb_offset_b').value = data.interior.lb_offset_b;
+            if (data.interior.lb_step !== undefined) document.getElementById('lb_step').value = data.interior.lb_step;
+            if (data.interior.lb_qty !== undefined) document.getElementById('lb_qty').value = data.interior.lb_qty;
+            if (data.interior.shelf_inset !== undefined) document.getElementById('shelf_inset').value = data.interior.shelf_inset;
+            if (data.interior.zone_split !== undefined) document.getElementById('zone_split').value = data.interior.zone_split;
+        }
+        
+        // Materials
+        if (data.materials) {
+            if (data.materials.mat_carcass_name !== undefined) document.getElementById('mat_carcass_name').value = data.materials.mat_carcass_name;
+            if (data.materials.mat_carcass_pvc !== undefined) document.getElementById('mat_carcass_pvc').value = data.materials.mat_carcass_pvc;
+            if (data.materials.mat_carcass_tex !== undefined) document.getElementById('mat_carcass_tex').value = data.materials.mat_carcass_tex;
+            if (data.materials.mat_front1_name !== undefined) document.getElementById('mat_front1_name').value = data.materials.mat_front1_name;
+            if (data.materials.mat_front1_pvc !== undefined) document.getElementById('mat_front1_pvc').value = data.materials.mat_front1_pvc;
+            if (data.materials.mat_front1_tex !== undefined) document.getElementById('mat_front1_tex').value = data.materials.mat_front1_tex;
+            if (data.materials.mat_front2_name !== undefined) document.getElementById('mat_front2_name').value = data.materials.mat_front2_name;
+            if (data.materials.mat_front2_pvc !== undefined) document.getElementById('mat_front2_pvc').value = data.materials.mat_front2_pvc;
+            if (data.materials.mat_front2_tex !== undefined) document.getElementById('mat_front2_tex').value = data.materials.mat_front2_tex;
+            if (data.materials.mat_back_name !== undefined) document.getElementById('mat_back_name').value = data.materials.mat_back_name;
+            if (data.materials.mat_plinth_name !== undefined) document.getElementById('mat_plinth_name').value = data.materials.mat_plinth_name;
+        }
+    }
+
+    window.onload = function() { callRuby('fetchPresets'); };
   </script>
 </body>
 </html>

@@ -32,31 +32,75 @@ module SmartCabinetMaker
     end
   end
 
-  def self.draw_side_strip(en, x, y_start, y_end, z, pw, ph, is_front, is_gola, g_type, gh, gd_val, gr)
-    if is_front && is_gola && g_type == "L"
+  def self.draw_side_strip(en, x, y_start, y_end, z, pw, ph, is_front, gola_specs)
+    if is_front && gola_specs && gola_specs.any?
       pts = [
         [x, y_start, z],
         [x, y_end, z],
         [x, y_end, z + ph]
       ]
-      if gr > 0 && gr <= gd_val && gr <= gh
-        r = gr
-        cy = y_start + gd_val - r
-        cz = z + ph - gh + r
-        pts << [x, cy + r, z + ph]
-        pts << [x, cy + r, cz]
-        (1..5).each do |i|
-          angle = i * (Math::PI / 2.0) / 6.0
-          pts << [x, cy + r * Math.cos(angle), cz - r * Math.sin(angle)]
-        end
-        pts << [x, cy, cz - r]
-      else
-        pts << [x, y_start + gd_val, z + ph]
-        pts << [x, y_start + gd_val, z + ph - gh]
-      end
-      pts << [x, y_start, z + ph - gh]
       
+      sorted_notches = gola_specs.sort_by { |n| -n[:z_top] }
+      sorted_notches.each do |n|
+        n_top = n[:z_top]
+        n_bot = n[:z_top] - n[:gh]
+        gd_val = n[:gd]
+        gr = n[:gr]
+        
+        next if n_top <= z || n_bot >= z + ph
+        n_top_clipped = [n_top, z + ph].min
+        n_bot_clipped = [n_bot, z].max
+        
+        if n_top_clipped < z + ph
+          pts << [x, y_start, n_top_clipped]
+        end
+        
+        if gr > 0 && gr <= gd_val && gr <= n[:gh]
+          r = gr
+          if n[:type] == "U"
+            cy_t = y_start + gd_val - r
+            cz_t = n_top - r
+            if cz_t < z + ph
+              pts << [x, cy_t, n_top_clipped]
+              (1..5).each do |i|
+                angle = i * (Math::PI / 2.0) / 6.0
+                pts << [x, cy_t + r * Math.sin(angle), cz_t + r * Math.cos(angle)]
+              end
+            end
+            
+            cy_b = y_start + gd_val - r
+            cz_b = n_bot + r
+            if cz_b > z
+              pts << [x, cy_b + r, cz_b]
+              (1..5).each do |i|
+                angle = i * (Math::PI / 2.0) / 6.0
+                pts << [x, cy_b + r * Math.cos(angle), cz_b - r * Math.sin(angle)]
+              end
+              pts << [x, cy_b, cz_b - r]
+            end
+          else
+            cy = y_start + gd_val - r
+            cz = n_bot + r
+            pts << [x, y_start + gd_val, n_top_clipped]
+            if cz > z
+              pts << [x, cy + r, cz]
+              (1..5).each do |i|
+                angle = i * (Math::PI / 2.0) / 6.0
+                pts << [x, cy + r * Math.cos(angle), cz - r * Math.sin(angle)]
+              end
+              pts << [x, cy, cz - r]
+            end
+          end
+        else
+          pts << [x, y_start + gd_val, n_top_clipped]
+          pts << [x, y_start + gd_val, n_bot_clipped]
+        end
+        pts << [x, y_start, n_bot_clipped]
+      end
+      
+      pts << [x, y_start, z]
       pts.uniq!
+      
       f = en.add_face(pts) rescue nil
       if f
         f.reverse! if f.normal.x < 0
@@ -163,7 +207,136 @@ module SmartCabinetMaker
     m
   end
 
+  def self.draw_gola(en, w, d, pl, h, f, mat, gola_specs)
+    return unless gola_specs && gola_specs.any?
+    
+    gola_specs.each_with_index do |spec, idx|
+      g_type = spec[:type]
+      gh = spec[:gh]
+      gd_val = spec[:gd]
+      z_top = spec[:z_top]
+      
+      g_grp = en.add_group
+      g_grp.name = "Gola_Profile_#{idx + 1}"
+      g_grp.material = mat
+      g_ent = g_grp.entities
+      
+      pts = []
+      
+      if g_type == "L"
+        # Volpato/DTC standard L-profile
+        # Back face is at gd_val (e.g. 26). Front face is at 0.
+        pts << [0, gd_val - 2.mm, z_top] # Top-front edge of back wall
+        pts << [0, gd_val, z_top]        # Top-back edge of flange / back wall
+        
+        # Rounded outer back-bottom corner (fits the r5 notch corner)
+        pts << [0, gd_val, z_top - gh + 5.mm]
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [0, gd_val - 5.mm + 5.mm * Math.cos(angle), z_top - gh + 5.mm - 5.mm * Math.sin(angle)]
+        end
+        pts << [0, gd_val - 5.mm, z_top - gh]
+        
+        pts << [0, 0, z_top - gh]         # Front-bottom corner
+        pts << [0, 0, z_top - gh + 6.mm]  # Front lip top
+        pts << [0, 2.mm, z_top - gh + 6.mm] # Front lip back hook
+        pts << [0, 2.mm, z_top - gh + 2.mm] # Inner bottom wall start
+        
+        # Inside curve of back-bottom corner
+        pts << [0, gd_val - 5.mm, z_top - gh + 2.mm]
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [0, gd_val - 5.mm + 3.mm * Math.sin(angle), z_top - gh + 2.mm + 3.mm - 3.mm * Math.cos(angle)]
+        end
+        pts << [0, gd_val - 2.mm, z_top - gh + 5.mm]
+        
+        # Smooth vertical wall front face
+        pts << [0, gd_val - 2.mm, z_top]
+        
+      else
+        # Volpato/DTC standard C/U-profile based on schematic
+        # Back face is at gd_val. Front face is at 0.
+        # Screw channels are on the BACK of the vertical wall (pointing to gd_val + 3.mm)
+        # The interior C-channel is perfectly flat, smooth and curved!
+        pts << [0, 0, z_top - 6.mm]         # Top-front lip bottom
+        pts << [0, 0, z_top]                # Top-front corner
+        
+        # Rounded outer back-top corner
+        pts << [0, gd_val - 5.mm, z_top]
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [0, gd_val - 5.mm + 5.mm * Math.sin(angle), z_top - 5.mm + 5.mm * Math.cos(angle)]
+        end
+        pts << [0, gd_val, z_top - 5.mm]
+        
+        # Screw channels on the back face of the vertical wall (pointing into wood)
+        pts << [0, gd_val, z_top - 20.mm]
+        pts << [0, gd_val + 3.mm, z_top - 20.mm]
+        pts << [0, gd_val + 3.mm, z_top - 22.mm]
+        pts << [0, gd_val, z_top - 22.mm]
+        
+        pts << [0, gd_val, z_top - gh + 22.mm]
+        pts << [0, gd_val + 3.mm, z_top - gh + 22.mm]
+        pts << [0, gd_val + 3.mm, z_top - gh + 20.mm]
+        pts << [0, gd_val, z_top - gh + 20.mm]
+        
+        # Rounded outer back-bottom corner
+        pts << [0, gd_val, z_top - gh + 5.mm]
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [0, gd_val - 5.mm + 5.mm * Math.cos(angle), z_top - gh + 5.mm - 5.mm * Math.sin(angle)]
+        end
+        pts << [0, gd_val - 5.mm, z_top - gh]
+        
+        pts << [0, 0, z_top - gh]           # Bottom-front corner
+        pts << [0, 0, z_top - gh + 6.mm]    # Bottom-front lip top
+        pts << [0, 2.mm, z_top - gh + 6.mm] # Bottom-front lip back hook
+        pts << [0, 2.mm, z_top - gh + 2.mm] # Inner bottom wall start
+        
+        # Curve inside back-bottom corner
+        pts << [0, gd_val - 5.mm, z_top - gh + 2.mm]
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [0, gd_val - 5.mm + 3.mm * Math.sin(angle), z_top - gh + 2.mm + 3.mm - 3.mm * Math.cos(angle)]
+        end
+        pts << [0, gd_val - 2.mm, z_top - gh + 5.mm]
+        
+        pts << [0, gd_val - 2.mm, z_top - 5.mm] # Smooth vertical wall front face
+        
+        # Curve inside back-top corner
+        (1..5).each do |i|
+          angle = i * (Math::PI / 2.0) / 6.0
+          pts << [0, gd_val - 5.mm + 3.mm * Math.cos(angle), z_top - 5.mm + 3.mm * Math.sin(angle)]
+        end
+        pts << [0, gd_val - 5.mm, z_top - 2.mm]
+        
+        pts << [0, 2.mm, z_top - 2.mm]     # Inner top wall start
+        pts << [0, 2.mm, z_top - 6.mm]     # Top-front lip back hook
+      end
+      
+      face = g_ent.add_face(pts) rescue nil
+      if face
+        face.reverse! if face.normal.x < 0
+        face.pushpull(w)
+        
+        comp = g_grp.to_component
+        comp.definition.name = "Gola_Profile_#{spec[:type]}_#{idx + 1}"
+        comp.name = "Gola_Profile"
+        comp.material = mat
+        
+        ["opencutlist", "OpenCutList"].each do |dict|
+          comp.material.set_attribute(dict, "type", "hardware")
+        end
+      end
+    end
+  end
+
   def self.build_cabinet(data, target_grp = nil)
+    begin
+      File.write(File.join(File.dirname(__FILE__), 'last_state.json'), data.to_json)
+    rescue => e
+      puts "Could not save last state: #{e}"
+    end
     return if @working
     @working = true
     model = Sketchup.active_model
@@ -209,10 +382,45 @@ module SmartCabinetMaker
       bi, gd = b['backInset'].to_f.mm, b['grooveDepth'].to_f.mm
       
       # Gola Settings
-      is_gola = (f['front_type'] == "Gola" || f['handle_type'] == "Gola")
+      is_gola = (f['front_type'].to_s.downcase.include?("gola") || 
+                 f['handle_type'].to_s.downcase.include?("gola") || 
+                 f['type'].to_s.downcase.include?("gola") || 
+                 f['handles'].to_s.downcase.include?("gola"))
       g_type = f['gola_type']
       gh, gd_val = f['gola_size'].to_f.mm, f['gola_depth'].to_f.mm
-      gr = f['gola_radius'].to_f.mm # Future CNC layer info
+      gr = f['gola_radius'] ? f['gola_radius'].to_f.mm : 5.mm
+      gr = 5.mm if gr <= 0
+
+      # Fronts Count & Drawer Height Pre-calculation
+      dc = f['count'].to_i
+      gap = 3.mm
+      drw_h_total = 0.to_mm
+      if f['front_type'] == "Drawers" && dc > 0
+        if is_gola
+          drw_h_total = (h - gp - (gh / 2.0) - (dc - 1) * (gh / 2.0)) / dc
+        else
+          int_h = (h - 2*t)
+          drw_h_total = (int_h - (dc + 1) * gap) / dc
+        end
+      end
+
+      # Dynamic Gola profiles collection
+      gola_specs = []
+      if is_gola
+        # Top L-profile
+        gola_specs << { type: "L", z_top: pl + h, gh: gh, gd: gd_val, gr: gr }
+        
+        # Intermediate U-profiles for drawers
+        if f['front_type'] == "Drawers" && dc > 1
+          (0...(dc - 1)).each do |i|
+            dz_i = pl + gp + i * (drw_h_total + (gh / 2.0))
+            z_g_center = dz_i + drw_h_total + (gh / 4.0)
+            gh_u = 73.mm # Standard Volpato U-profile height
+            z_g_top = z_g_center + (gh_u / 2.0)
+            gola_specs << { type: "U", z_top: z_g_top, gh: gh_u, gd: gd_val, gr: gr }
+          end
+        end
+      end
 
       sh, sz = (ct == "SideOverTop" ? [h, pl] : [h - 2*t, pl + t])
       # For Grooved back, all panels must go to full depth to have aligned grooves
@@ -220,6 +428,7 @@ module SmartCabinetMaker
       
       # PRE-CALCULATE SHELVES AND HOLES
       ns, s_inset = i_data['shelves'].to_i, i_data['shelf_inset'].to_f.mm
+      ns = 0 if f['front_type'] == "Drawers"
       lb_step = (i_data['lb_step'] || 32).to_f.mm
       lb_qty = i_data['lb_qty'] || "Full"
       shelf_z_list = []
@@ -236,10 +445,11 @@ module SmartCabinetMaker
             actual_hz = lb_anchor + k * lb_step
             actual_shelf_z = actual_hz + 2.5.mm
             actual_hole_z_list << actual_hz
+            shelf_z_list << actual_shelf_z
           else
             actual_shelf_z = ideal_shelf_z
+            shelf_z_list << actual_shelf_z
           end
-          shelf_z_list << actual_shelf_z
         end
       end
       
@@ -264,27 +474,75 @@ module SmartCabinetMaker
           part_data[:thickness] = pd_val
         end
 
-        if side_type && is_gola && g_type == "L"
+        if side_type && gola_specs && gola_specs.any?
           b_pts = []
           b_pts << [0.mm, 0.mm]
           b_pts << [0.mm, pd_val]
           b_pts << [ph, pd_val]
-          if gr > 0 && gr <= gd_val && gr <= gh
-            r = gr
-            cy = gd_val - r
-            cz = ph - gh + r
-            b_pts << [ph, cy + r]
-            b_pts << [cz, cy + r]
-            (1..5).each do |i|
-              angle = i * (Math::PI / 2.0) / 6.0
-              b_pts << [cz - r * Math.sin(angle), cy + r * Math.cos(angle)]
-            end
-            b_pts << [cz - r, cy]
-          else
-            b_pts << [ph, gd_val]
-            b_pts << [ph - gh, gd_val]
+          
+          # We trace the boundary from top (x = ph) to bottom (x = 0)
+          sorted_notches = gola_specs.sort_by { |n| -n[:z_top] }
+          
+          sorted_notches.each do |n|
+            n_top = n[:z_top] - z
+            n_bot = n[:z_top] - n[:gh] - z
+            gd_val_n = n[:gd]
+            gr_n = n[:gr]
+            
+            next if n_top <= 0 || n_bot >= ph
+            n_top_clipped = [n_top, ph].min
+            n_bot_clipped = [n_bot, 0].max
+            
+            if n_top_clipped < ph
+            b_pts << [n_top_clipped, 0.mm]
           end
-          b_pts << [ph - gh, 0.mm]
+            
+            if gr_n > 0 && gr_n <= gd_val_n && gr_n <= n[:gh]
+              r = gr_n
+              if n[:type] == "U"
+                cx_t = n_top - r
+                cy_t = gd_val_n - r
+                if cx_t < ph
+                  b_pts << [n_top_clipped, cy_t]
+                  (1..5).each do |i|
+                    angle = i * (Math::PI / 2.0) / 6.0
+                    b_pts << [cx_t + r * Math.cos(angle), cy_t + r * Math.sin(angle)]
+                  end
+                end
+                
+                cx_b = n_bot + r
+                cy_b = gd_val_n - r
+                if cx_b > 0
+                  b_pts << [cx_b, cy_b + r]
+                  (1..5).each do |i|
+                    angle = i * (Math::PI / 2.0) / 6.0
+                    b_pts << [cx_b - r * Math.sin(angle), cy_b + r * Math.cos(angle)]
+                  end
+                  b_pts << [cx_b - r, cy_b]
+                end
+              else
+                cx = n_bot + r
+                cy = gd_val_n - r
+                b_pts << [n_top_clipped, gd_val_n]
+                if cx > 0
+                  b_pts << [cx, cy + r]
+                  (1..5).each do |i|
+                    angle = i * (Math::PI / 2.0) / 6.0
+                    b_pts << [cx - r * Math.sin(angle), cy + r * Math.cos(angle)]
+                  end
+                  b_pts << [cx - r, cy]
+                end
+              end
+            else
+              b_pts << [n_top_clipped, gd_val_n]
+              b_pts << [n_bot_clipped, gd_val_n]
+            end
+            
+            b_pts << [n_bot_clipped, 0.mm]
+          end
+          
+          b_pts << [0.mm, 0.mm]
+          b_pts.uniq!
           part_data[:boundary] = b_pts
         end
         
@@ -293,16 +551,16 @@ module SmartCabinetMaker
             g_start_y = pd_val - bi - bp
             g_end_y = pd_val - bi
             if side_type == :l
-              draw_side_strip(p_grp.entities, x, y, y + pd_val, z, t - gd, ph, true, is_gola, g_type, gh, gd_val, gr)
-              draw_side_strip(p_grp.entities, x + t - gd, y, y + g_start_y, z, gd, ph, true, is_gola, g_type, gh, gd_val, gr)
-              draw_side_strip(p_grp.entities, x + t - gd, y + g_end_y, y + pd_val, z, gd, ph, false, is_gola, g_type, gh, gd_val, gr)
+              draw_side_strip(p_grp.entities, x, y, y + pd_val, z, t - gd, ph, true, gola_specs)
+              draw_side_strip(p_grp.entities, x + t - gd, y, y + g_start_y, z, gd, ph, true, gola_specs)
+              draw_side_strip(p_grp.entities, x + t - gd, y + g_end_y, y + pd_val, z, gd, ph, false, gola_specs)
             else
-              draw_side_strip(p_grp.entities, x + gd, y, y + pd_val, z, t - gd, ph, true, is_gola, g_type, gh, gd_val, gr)
-              draw_side_strip(p_grp.entities, x, y, y + g_start_y, z, gd, ph, true, is_gola, g_type, gh, gd_val, gr)
-              draw_side_strip(p_grp.entities, x, y + g_end_y, y + pd_val, z, gd, ph, false, is_gola, g_type, gh, gd_val, gr)
+              draw_side_strip(p_grp.entities, x + gd, y, y + pd_val, z, t - gd, ph, true, gola_specs)
+              draw_side_strip(p_grp.entities, x, y, y + g_start_y, z, gd, ph, true, gola_specs)
+              draw_side_strip(p_grp.entities, x, y + g_end_y, y + pd_val, z, gd, ph, false, gola_specs)
             end
           else
-            draw_side_strip(p_grp.entities, x, y, y + pd_val, z, pw, ph, true, is_gola, g_type, gh, gd_val, gr)
+            draw_side_strip(p_grp.entities, x, y, y + pd_val, z, pw, ph, true, gola_specs)
           end
         elsif bt == "Grooved" && gd > 0 && is_horiz
           g_start_y = pd_val - bi - bp
@@ -337,7 +595,7 @@ module SmartCabinetMaker
           
           holes_to_drill.each do |hz|
             if hz > pl + t + 20.mm && hz < pl + h - t - 20.mm
-              sxs, svs = (side_type == :l ? x + t : x), (side_type == :l ? -1 : 1)
+              sxs, svs = (side_type == :l ? x + t : x), (side_type == :l ? 1 : -1)
               hole(p_grp.entities, [sxs, y + lb_f, hz], [svs, 0, 0], 2.5.mm, 12.mm, "C_BORE_5")
               hole(p_grp.entities, [sxs, y + pd_val - lb_b, hz], [svs, 0, 0], 2.5.mm, 12.mm, "C_BORE_5")
               part_data[:holes] << [hz - z, lb_f, 2.5.mm, 12.mm]
@@ -348,11 +606,15 @@ module SmartCabinetMaker
 
         # Track Grooves for DXF
         if side_type && is_grooved
-          gc_y = (g_start_y + g_end_y) / 2.0
-          part_data[:grooves] << [0, gc_y, ph, gc_y]
+          part_data[:grooves] << [0, g_start_y, ph, g_start_y]
+          part_data[:grooves] << [ph, g_start_y, ph, g_end_y]
+          part_data[:grooves] << [ph, g_end_y, 0, g_end_y]
+          part_data[:grooves] << [0, g_end_y, 0, g_start_y]
         elsif bt == "Grooved" && gd > 0 && is_horiz
-          gc_y = (g_start_y + g_end_y) / 2.0
-          part_data[:grooves] << [0, gc_y, pw, gc_y]
+          part_data[:grooves] << [0, g_start_y, pw, g_start_y]
+          part_data[:grooves] << [pw, g_start_y, pw, g_end_y]
+          part_data[:grooves] << [pw, g_end_y, 0, g_end_y]
+          part_data[:grooves] << [0, g_end_y, 0, g_start_y]
         end
 
         # Joinery Screws (CNC Ready)
@@ -374,10 +636,10 @@ module SmartCabinetMaker
         create_p.call("Left Side", 0, 0, pl, t, d, h, m_car, :l)
         create_p.call("Right Side", w - t, 0, pl, t, d, h, m_car, :r)
         create_p.call("Bottom", t, 0, pl, w - 2 * t, panel_d, t, m_car, nil, true)
-        create_p.call("Top", t, 0, pl + h - t, w - 2 * t, (is_gola ? panel_d - gd_val : panel_d), t, m_car, nil, true) if tt != "Rails"
+        create_p.call("Top", t, (is_gola ? gd_val + 12.mm : 0), pl + h - t, w - 2 * t, (is_gola ? panel_d - gd_val - 12.mm : panel_d), t, m_car, nil, true) if tt != "Rails"
       else
         create_p.call("Bottom", 0, 0, pl, w, panel_d, t, m_car, nil, true)
-        create_p.call("Top", 0, 0, pl + h - t, w, (is_gola ? panel_d - gd_val : panel_d), t, m_car, nil, true) if tt != "Rails"
+        create_p.call("Top", 0, (is_gola ? gd_val + 12.mm : 0), pl + h - t, w, (is_gola ? panel_d - gd_val - 12.mm : panel_d), t, m_car, nil, true) if tt != "Rails"
         create_p.call("Left Side", 0, 0, sz, t, d, sh, m_car, :l)
         create_p.call("Right Side", w - t, 0, sz, t, d, sh, m_car, :r)
       end
@@ -387,7 +649,7 @@ module SmartCabinetMaker
         rx, rwv = (ct == "SideOverTop" ? [t, w - 2 * t] : [0, w])
         if is_gola
           # Vertical Front Rail for Gola
-          create_p.call("Top Front Rail (V)", rx, gd_val, pl + h - gh - t, rwv, t, gh, m_car)
+          create_p.call("Top Front Rail (V)", rx, gd_val, pl + h - gh, rwv, t, gh - 4.mm, m_car)
         else
           # Standard Horizontal Rail
           create_p.call("Top Front Rail", rx, 0, pl + h - t, rwv, rw, t, m_car)
@@ -424,17 +686,49 @@ module SmartCabinetMaker
         end
       end
 
-      # Shelves
+      # Draw Gola Profiles if applicable
+      if is_gola
+        m_gola = apply_mat(model, "Hardware_Gola_Profile", "", [220, 220, 220])
+        self.draw_gola(ent, w, d, pl, h, f, m_gola, gola_specs)
+      end
+
+      # Shelves & Pins
       if ns > 0
+        m_pin = apply_mat(model, "Hardware_Shelf_Pin", "", [200, 200, 200])
         (1..ns).each do |i|
-          create_p.call("Shelf #{i}", t + 2.mm, s_inset, shelf_z_list[i-1], w - 2*t - 4.mm, panel_d - s_inset, t, m_car)
+          sz_val = shelf_z_list[i-1]
+          create_p.call("Shelf #{i}", t + 2.mm, s_inset, sz_val, w - 2*t - 4.mm, panel_d - s_inset, t, m_car)
+          
+          if i_data['line_boring']
+            hz = sz_val - 2.5.mm
+            lb_f, lb_b = i_data['lb_offset_f'].to_f.mm, i_data['lb_offset_b'].to_f.mm
+            # Draw 4 pins (little 3D cylinders sticking out of side panels to support shelf)
+            [[t, lb_f, 1], [t, d - lb_b, 1], [w - t, lb_f, -1], [w - t, d - lb_b, -1]].each do |px, py, dir|
+              p_grp = ent.add_group
+              p_grp.name = "Shelf_Support_Pin"
+              p_grp.material = m_pin
+              ci = p_grp.entities.add_circle([px, py, hz], [dir, 0, 0], 2.5.mm)
+              f_face = p_grp.entities.add_face(ci) rescue nil
+              if f_face
+                f_face.reverse! if (dir == 1 && f_face.normal.x < 0) || (dir == -1 && f_face.normal.x > 0)
+                f_face.pushpull(8.mm)
+              end
+              comp = p_grp.to_component
+              comp.definition.name = "Shelf_Support_Pin"
+              comp.name = "Shelf_Support_Pin"
+              comp.material = m_pin
+              ["opencutlist", "OpenCutList"].each { |dict| comp.material.set_attribute(dict, "type", "hardware") }
+            end
+          end
         end
       end
 
       # Fronts (Doors/Drawers)
       ht = f['handle_type']
       if f['front_type'] == "Doors" && f['count'].to_i > 0
-        dc = f['count'].to_i; dh, dz = h - 2*gp, pl + gp
+        dc = f['count'].to_i
+        dz = pl + gp
+        dh = is_gola ? (h - (gh / 2.0) - gp) : (h - 2*gp)
         dw = (dc == 1) ? w - 2*gp : (w - 3*gp) / 2.0
         [0, (dc == 2 ? 1 : nil)].compact.each do |i|
           dsx = (i == 0) ? gp : w / 2.0 + gp / 2.0
@@ -470,8 +764,9 @@ module SmartCabinetMaker
       elsif f['front_type'] == "Drawers" && f['count'].to_i > 0
         dc = f['count'].to_i; gap = 3.mm
         # Available internal space
-        int_w = w - 2*t; int_h = h - 2*t; int_d = d - bi
-        drw_h_total = (int_h - (dc + 1) * gap) / dc
+        int_w = w - 2*t
+        int_h = is_gola ? (h - t - gh) : (h - 2*t)
+        int_d = d - bi
         
         # Safety check for missing drawer data (e.g. old presets)
         drw = data['drawer'] || {}
@@ -483,7 +778,11 @@ module SmartCabinetMaker
         db_gap = (drw['back_gap'] || 10).to_f.mm
         
         (0...dc).each do |i|
-          dz = pl + t + gap + i * (drw_h_total + gap)
+          if is_gola
+            dz = pl + gp + i * (drw_h_total + (gh / 2.0))
+          else
+            dz = pl + t + gap + i * (drw_h_total + gap)
+          end
           # 1. Front Panel (Visual)
           f_grp = ent.add_group; f_grp.name = "Drawer_Front_#{i+1}"
           f_grp.material = m_f1
@@ -521,21 +820,28 @@ module SmartCabinetMaker
           f_comp.material = m_f1
           
           # 2. Drawer Box (Construction)
-          box_w = int_w - 2 * rg; box_h = drw_h_total - 30.mm
-          box_d = int_d - db_gap; box_x = t + rg
+          drw_y_start = 0
+          box_dz_start = dz
+          box_h = drw_h_total - 30.mm
+          if is_gola && i > 0
+            box_dz_start = dz + 31.5.mm
+            box_h = drw_h_total - 61.5.mm
+          end
+          box_w = int_w - 2 * rg
+          box_d = (int_d - drw_y_start) - db_gap; box_x = t + rg
           
           b_grp = ent.add_group; b_grp.name = "Drawer_Box_#{i+1}"
           b_grp.material = m_car
           b_ent = b_grp.entities
           
           # Drawer Sides
-          box(b_ent, box_x, 0, dz, dt, box_d, box_h)
-          box(b_ent, box_x + box_w - dt, 0, dz, dt, box_d, box_h)
+          box(b_ent, box_x, drw_y_start, box_dz_start, dt, box_d, box_h)
+          box(b_ent, box_x + box_w - dt, drw_y_start, box_dz_start, dt, box_d, box_h)
           # Drawer Front/Back (Inner)
-          box(b_ent, box_x + dt, 0, dz, box_w - 2*dt, dt, box_h)
-          box(b_ent, box_x + dt, box_d - dt, dz, box_w - 2*dt, dt, box_h)
+          box(b_ent, box_x + dt, drw_y_start, box_dz_start, box_w - 2*dt, dt, box_h)
+          box(b_ent, box_x + dt, drw_y_start + box_d - dt, box_dz_start, box_w - 2*dt, dt, box_h)
           # Drawer Bottom
-          box(b_ent, box_x + dt - dbg, dt, dz + dbi, box_w - 2*dt + 2*dbg, box_d - 2*dt, dbth)
+          box(b_ent, box_x + dt - dbg, drw_y_start + dt, box_dz_start + dbi, box_w - 2*dt + 2*dbg, box_d - 2*dt, dbth)
           
           b_comp = b_grp.to_component
           b_comp.definition.name = "Drawer_Box_#{i+1}"
@@ -1007,7 +1313,47 @@ module SmartCabinetMaker
   end
 
   def self.write_dxf(file_path, name, w_val, l_val, holes, grooves = [], boundary = [])
+    drill_layers = holes.map { |h| "DRILL_#{sprintf("%g", (h[2]*2).to_mm)}" }.uniq
+    layers = ["CUT", "GROOVE"] + drill_layers
+    
     lines = []
+    lines << "0"
+    lines << "SECTION"
+    lines << "2"
+    lines << "HEADER"
+    lines << "9"
+    lines << "$ACADVER"
+    lines << "1"
+    lines << "AC1009"
+    lines << "0"
+    lines << "ENDSEC"
+    
+    lines << "0"
+    lines << "SECTION"
+    lines << "2"
+    lines << "TABLES"
+    lines << "0"
+    lines << "TABLE"
+    lines << "2"
+    lines << "LAYER"
+    lines << "70"
+    lines << layers.length.to_s
+    layers.each_with_index do |layer_name, idx|
+      color = (idx % 7) + 1
+      lines << "0"
+      lines << "LAYER"
+      lines << "2"
+      lines << layer_name
+      lines << "70"
+      lines << "0"
+      lines << "62"
+      lines << color.to_s
+    end
+    lines << "0"
+    lines << "ENDTAB"
+    lines << "0"
+    lines << "ENDSEC"
+    
     lines << "0"
     lines << "SECTION"
     lines << "2"
@@ -1118,12 +1464,83 @@ module SmartCabinetMaker
         end
       end
     }
+    
+    @dialog.add_action_callback("fetchPresets") { |c, _|
+      presets_path = File.join(File.dirname(__FILE__), 'presets.json')
+      if File.exist?(presets_path)
+        begin
+          presets_data = File.read(presets_path)
+          JSON.parse(presets_data) # Validate it is valid JSON
+          @dialog.execute_script("updatePresetsList(#{presets_data})")
+        rescue => e
+          puts "Error parsing presets.json: #{e.message}"
+        end
+      else
+        File.write(presets_path, "{}")
+        @dialog.execute_script("updatePresetsList({})")
+      end
+      
+      # Restore last state
+      last_state_path = File.join(File.dirname(__FILE__), 'last_state.json')
+      if File.exist?(last_state_path)
+        begin
+          last_data = File.read(last_state_path)
+          JSON.parse(last_data)
+          @dialog.execute_script("loadPresetData(#{last_data})")
+        rescue => e
+          puts "Error parsing last_state.json: #{e.message}"
+        end
+      end
+    }
+
+    @dialog.add_action_callback("savePreset") { |c, name, data_json|
+      if name.to_s.empty?
+        UI.messagebox("Δώστε ένα έγκυρο όνομα για το πρότυπο!")
+        next
+      end
+
+      presets_path = File.join(File.dirname(__FILE__), 'presets.json')
+      presets = {}
+      if File.exist?(presets_path)
+        begin
+          presets = JSON.parse(File.read(presets_path))
+        rescue
+          presets = {}
+        end
+      end
+
+      begin
+        presets[name] = JSON.parse(data_json)
+        File.write(presets_path, JSON.pretty_generate(presets))
+        @dialog.execute_script("updatePresetsList(#{presets.to_json})")
+        UI.messagebox("Το πρότυπο '#{name}' αποθηκεύτηκε επιτυχώς!")
+      rescue => e
+        UI.messagebox("Σφάλμα κατά την αποθήκευση: #{e.message}")
+      end
+    }
+
+    @dialog.add_action_callback("loadPreset") { |c, name|
+      next if name.to_s.empty?
+      presets_path = File.join(File.dirname(__FILE__), 'presets.json')
+      if File.exist?(presets_path)
+        begin
+          presets = JSON.parse(File.read(presets_path))
+          if presets.key?(name)
+            preset_data = presets[name]
+            @dialog.execute_script("loadPresetData(#{preset_data.to_json})")
+          end
+        rescue => e
+          puts "Error loading preset: #{e.message}"
+        end
+      end
+    }
     @dialog.show
   end
 
-  unless file_loaded?(__FILE__)
+  unless file_loaded?("smart_cabinet_maker_pro") || defined?(@menu_loaded)
+    @menu_loaded = true
     m = UI.menu("Plugins").add_submenu("Smart Cabinet Maker Pro")
     m.add_item("Configurator") { self.show_dialog }
-    file_loaded(__FILE__)
+    file_loaded("smart_cabinet_maker_pro")
   end
 end
