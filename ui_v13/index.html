@@ -147,7 +147,7 @@
         <h3>Προσόψεις & Μηχανισμοί</h3>
         <div class="property-grid"><div class="grid-item"><label>Τύπος</label><select id="front_type"><option value="Doors">Πόρτες</option><option value="Drawers">Συρτάρια</option><option value="Gola">Gola Front</option></select></div><div class="grid-item"><label>Overlay</label><select id="overlay_type"><option value="Full">Full</option><option value="Half">Half</option><option value="Inset">Inset</option></select></div><div class="grid-item"><label>Αριθμός (Π/Σ)</label><input type="number" id="front_count" value="2"></div></div>
         <div class="section-header">Μεντεσέδες</div>
-        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="hinge_type"><option value="Blum_ClipTop">Blum Clip Top</option><option value="Salice_110">Salice 110</option><option value="None">None</option></select></div><div class="grid-item"><label>Offset (mm)</label><input type="number" id="hinge_offset" value="100"></div></div>
+        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="hinge_type"><option value="Blum_ClipTop">Blum Clip Top</option><option value="Salice_110">Salice 110</option><option value="None">None</option></select></div><div class="grid-item"><label>Offset (mm)</label><select id="hinge_offset"><option value="100">100</option><option value="120" selected>120</option><option value="150">150</option><option value="180">180</option></select></div></div>
         <div class="section-header">Πόμολα & Gola Profile</div>
         <div class="field"><div class="label-zone"><span class="label-main">Είδος Λαβής</span></div><select id="handle_type" onchange="toggleGolaSettings()"><option value="Bar">Bar (2 τρύπες)</option><option value="Knob">Knob (1 τρύπα)</option><option value="Gola">Gola Profile</option><option value="None">None</option></select></div>
         <div id="handle_params_section"><div class="property-grid"><div class="grid-item"><label>Διάκεντρο</label><input type="number" id="handle_cc" value="128"></div><div class="grid-item"><label>Offset X</label><input type="number" id="handle_offset_x" value="40"></div><div class="grid-item"><label>Offset Z</label><input type="number" id="handle_offset_z" value="40"></div></div></div>
@@ -160,12 +160,14 @@
               <option value="volpato_c">Volpato C-Profile (73x27mm)</option>
               <option value="dtc_l">DTC L-Profile (56x27mm)</option>
               <option value="dtc_c">DTC C-Profile (74x27mm)</option>
+              <option value="geman_l">German L-Profile (57.9x26.2mm)</option>
+              <option value="geman_c">German C-Profile (72.6x26.2mm)</option>
             </select>
           </div>
           <div class="property-grid">
-            <div class="grid-item"><label>Προφίλ</label><select id="gola_type"><option value="L">L-Profile</option><option value="U">U-Profile</option></select></div>
-            <div class="grid-item"><label>Ύψος (H)</label><input type="number" id="gola_size" value="57"></div>
-            <div class="grid-item"><label>Βάθος (D)</label><input type="number" id="gola_depth" value="26"></div>
+            <div class="grid-item"><label>Προφίλ</label><select id="gola_type"><option value="L">L-Profile</option><option value="U">U-Profile</option><option value="German_L">German L-Gola</option><option value="German_U">German C-Gola</option></select></div>
+            <div class="grid-item"><label>Ύψος (H)</label><input type="number" id="gola_size" value="57" step="0.1"></div>
+            <div class="grid-item"><label>Βάθος (D)</label><input type="number" id="gola_depth" value="26" step="0.1"></div>
             <div class="grid-item"><label>Radius</label><input type="number" id="gola_radius" value="5"></div>
           </div>
         </div>
@@ -191,7 +193,9 @@
         volpato_l: { type: "L", size: 57, depth: 26, radius: 5 },
         volpato_c: { type: "U", size: 73, depth: 27, radius: 5 },
         dtc_l: { type: "L", size: 57, depth: 26, radius: 5 },
-        dtc_c: { type: "U", size: 74, depth: 27, radius: 5 }
+        dtc_c: { type: "U", size: 74, depth: 27, radius: 5 },
+        geman_l: { type: "German_L", size: 57.9, depth: 26.2, radius: 5 },
+        geman_c: { type: "German_U", size: 72.6, depth: 26.2, radius: 5 }
     };
 
     function callRuby(callbackName, ...args) {

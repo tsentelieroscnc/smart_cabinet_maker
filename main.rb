@@ -2,8 +2,9 @@ require 'sketchup.rb'
 require 'json'
 
 # VERSION 12.0 - PRO VISUALS & PREVIEW RESTORED
-module SmartCabinetMaker
-  @id_cnt = 0
+module SmartCabinet
+  module Maker
+    @id_cnt = 0
 
   def self.get_l(n)
     m = Sketchup.active_model
@@ -57,7 +58,7 @@ module SmartCabinetMaker
         
         if gr > 0 && gr <= gd_val && gr <= n[:gh]
           r = gr
-          if n[:type] == "U"
+          if n[:type] == "U" || n[:type] == "German_U"
             cy_t = y_start + gd_val - r
             cz_t = n_top - r
             if cz_t < z + ph
@@ -207,6 +208,40 @@ module SmartCabinetMaker
     m
   end
 
+  def self.draw_blum_hinge(en, x, y, z, mat, is_right)
+    # Basic 3D representation of Blum Clip Top
+    grp = en.add_group
+    grp.name = "Blum_Hinge"
+    grp.material = mat
+    ent = grp.entities
+    
+    # Hinge cup in the door (diameter 35mm, depth 12mm)
+    # y is the back face of the door (which is 0 in global coordinates usually)
+    cup_x = is_right ? x - 22.5.mm : x + 22.5.mm
+    cup_r = 17.5.mm
+    self.hole(ent, [cup_x, 0, z], [0, -1, 0], cup_r, 12.mm, "Hardware")
+    
+    # Hinge arm
+    arm_w = 15.mm
+    arm_l = 30.mm
+    arm_h = 20.mm
+    arm_x = is_right ? x - arm_l : x
+    self.box(ent, arm_x, 0, z - arm_h/2, arm_l, 37.mm, arm_h)
+    
+    # Mounting plate on the carcass (at 37mm offset)
+    plate_w = 5.mm
+    px = is_right ? x - plate_w : x
+    self.box(ent, px, 37.mm - 10.mm, z - 16.mm, plate_w, 20.mm, 32.mm)
+    
+    comp = grp.to_component
+    comp.definition.name = "Blum_Hinge"
+    comp.name = "Blum_Hinge"
+    comp.material = mat
+    ["opencutlist", "OpenCutList"].each do |dict|
+      comp.material.set_attribute(dict, "type", "hardware")
+    end
+  end
+
   def self.draw_gola(en, w, d, pl, h, f, mat, gola_specs)
     return unless gola_specs && gola_specs.any?
     
@@ -215,6 +250,7 @@ module SmartCabinetMaker
       gh = spec[:gh]
       gd_val = spec[:gd]
       z_top = spec[:z_top]
+      z_bot = z_top - gh
       
       g_grp = en.add_group
       g_grp.name = "Gola_Profile_#{idx + 1}"
@@ -253,7 +289,7 @@ module SmartCabinetMaker
         # Smooth vertical wall front face
         pts << [0, gd_val - 2.mm, z_top]
         
-      else
+      elsif g_type == "U"
         # Volpato/DTC standard C/U-profile based on schematic
         # Back face is at gd_val. Front face is at 0.
         # Screw channels are on the BACK of the vertical wall (pointing to gd_val + 3.mm)
@@ -312,6 +348,70 @@ module SmartCabinetMaker
         
         pts << [0, 2.mm, z_top - 2.mm]     # Inner top wall start
         pts << [0, 2.mm, z_top - 6.mm]     # Top-front lip back hook
+        
+      elsif g_type == "German_L"
+        # German L-Gola: 17-point closed polygon lining the notch floor (y=0 to gd_val),
+        # wrapping over the wood rail at y=gd_val (z=z_top), and wrapping under the wood rail at y=gd_val (z=z_bot).
+        t       = 1.2.mm
+        y_back  = gd_val
+        y_inner = y_back  - t
+        y_fh    = y_back  + 6.7.mm  # top flange back end (goes deeper)
+        y_hi    = y_fh    - t
+        y_no    = y_back  + 4.0.mm  # bottom flange back end
+        y_ni    = y_no    - t
+        hk      = 3.0.mm            # top hook drop depth
+        ns      = 4.8.mm            # bottom nose drop depth
+        z_bot   = z_top  - gh
+
+        pts << [0, y_fh,    z_top - hk   ]   # p1  top hook bottom-right
+        pts << [0, y_fh,    z_top        ]   # p2  top hook top-right
+        pts << [0, y_back,  z_top        ]   # p3  top-back corner
+        pts << [0, y_back,  z_bot        ]   # p4  back wall bottom-back
+        pts << [0, y_back,  z_bot - ns   ]   # p5  bottom flange outer-bottom-left
+        pts << [0, y_no,    z_bot - ns   ]   # p6  bottom flange outer-bottom-right
+        pts << [0, y_no,    z_bot - ns + t]  # p7  bottom flange inner-top-right
+        pts << [0, y_back + t, z_bot - ns + t] # p8 bottom flange inner-top-left
+        pts << [0, y_back + t, z_bot     ]   # p9  bottom flange inner-top
+        pts << [0, 0,       z_bot        ]   # p10 bottom-front outer corner
+        pts << [0, 0,       z_bot + 6.mm ]   # p11 front lip top-front
+        pts << [0, t,       z_bot + 6.mm ]   # p12 front lip top-back
+        pts << [0, t,       z_bot + t    ]   # p13 bottom plate inner-front
+        pts << [0, y_inner, z_bot + t    ]   # p14 bottom plate inner-back
+        pts << [0, y_inner, z_top - t    ]   # p15 back wall inner-top
+        pts << [0, y_hi,    z_top - t    ]   # p16 top flange inner-bottom
+        pts << [0, y_hi,    z_top - hk   ]   # p17 top hook inner-left
+
+      elsif g_type == "German_U"
+        # German U-Gola: Symmetrical 20-point C-Gola profile sitting inside the notch,
+        # wrapping over the top rail (at z_top) and wrapping under the bottom rail (at z_bot).
+        t       = 1.2.mm
+        y_back  = gd_val
+        y_inner = y_back  - t
+        y_fh    = y_back  + 6.7.mm  # symmetrical top/bottom flange back end
+        y_hi    = y_fh    - t
+        hk      = 3.0.mm            # hook depth
+        z_bot   = z_top   - gh
+
+        pts << [0, y_fh,    z_top - hk   ]   # p1  top hook bottom-right
+        pts << [0, y_fh,    z_top        ]   # p2  top hook top-right
+        pts << [0, 0,       z_top        ]   # p3  top-front outer corner
+        pts << [0, 0,       z_top - 6.mm ]   # p4  top lip bottom-front
+        pts << [0, t,       z_top - 6.mm ]   # p5  top lip bottom-back
+        pts << [0, t,       z_top - t    ]   # p6  top plate inner-front
+        pts << [0, y_inner, z_top - t    ]   # p7  top plate inner-back
+        pts << [0, y_inner, z_bot + t    ]   # p8  back wall inner-bottom
+        pts << [0, t,       z_bot + t    ]   # p9  bottom plate inner-back
+        pts << [0, t,       z_bot + 6.mm ]   # p10 bottom lip top-back
+        pts << [0, 0,       z_bot + 6.mm ]   # p11 bottom lip top-front
+        pts << [0, 0,       z_bot        ]   # p12 bottom-front outer corner
+        pts << [0, y_fh,    z_bot        ]   # p13 bottom hook bottom-right
+        pts << [0, y_fh,    z_bot + hk   ]   # p14 bottom hook top-right
+        pts << [0, y_hi,    z_bot + hk   ]   # p15 bottom hook top-left
+        pts << [0, y_hi,    z_bot + t    ]   # p16 bottom flange inner-top
+        pts << [0, y_back,  z_bot + t    ]   # p17 back wall outer-bottom
+        pts << [0, y_back,  z_top - t    ]   # p18 back wall outer-top
+        pts << [0, y_hi,    z_top - t    ]   # p19 top flange inner-bottom
+        pts << [0, y_hi,    z_top - hk   ]   # p20 top hook bottom-left
       end
       
       face = g_ent.add_face(pts) rescue nil
@@ -407,17 +507,37 @@ module SmartCabinetMaker
       # Dynamic Gola profiles collection
       gola_specs = []
       if is_gola
-        # Top L-profile
-        gola_specs << { type: "L", z_top: pl + h, gh: gh, gd: gd_val, gr: gr }
+        # Top Gola profile must always be an L-profile, regardless of UI selection
+        top_g_type = g_type
+        top_gh = gh
+        top_gd = gd_val
         
-        # Intermediate U-profiles for drawers
+        if g_type == "German_U" || g_type == "German_L"
+          top_g_type = "German_L"
+          top_gh = 57.9.mm
+          top_gd = 26.2.mm
+        elsif g_type == "U" || g_type == "L"
+          top_g_type = "L"
+          top_gh = 57.mm
+          top_gd = 26.mm
+        end
+        
+        gola_specs << { type: top_g_type, z_top: pl + h, gh: top_gh, gd: top_gd, gr: gr }
+        
+        # Intermediate Gola profiles for drawers
         if f['front_type'] == "Drawers" && dc > 1
           (0...(dc - 1)).each do |i|
             dz_i = pl + gp + i * (drw_h_total + (gh / 2.0))
             z_g_center = dz_i + drw_h_total + (gh / 4.0)
-            gh_u = 73.mm # Standard Volpato U-profile height
-            z_g_top = z_g_center + (gh_u / 2.0)
-            gola_specs << { type: "U", z_top: z_g_top, gh: gh_u, gd: gd_val, gr: gr }
+            if g_type == "German_L" || g_type == "German_U"
+              gh_u = 72.6.mm # German C-profile height
+              z_g_top = z_g_center + (gh_u / 2.0)
+              gola_specs << { type: "German_U", z_top: z_g_top, gh: gh_u, gd: gd_val, gr: gr }
+            else
+              gh_u = 73.mm # Standard Volpato U-profile height
+              z_g_top = z_g_center + (gh_u / 2.0)
+              gola_specs << { type: "U", z_top: z_g_top, gh: gh_u, gd: gd_val, gr: gr }
+            end
           end
         end
       end
@@ -499,7 +619,7 @@ module SmartCabinetMaker
             
             if gr_n > 0 && gr_n <= gd_val_n && gr_n <= n[:gh]
               r = gr_n
-              if n[:type] == "U"
+              if n[:type] == "U" || n[:type] == "German_U"
                 cx_t = n_top - r
                 cy_t = gd_val_n - r
                 if cx_t < ph
@@ -759,6 +879,35 @@ module SmartCabinetMaker
             end
           end
           
+          hinge_type = f['hingeType'] || "None"
+          if hinge_type == "Blum_ClipTop" || hinge_type == "Salice_110"
+            h_offset = (f['hingeOffset'] || 120).to_f.mm
+            hinge_zs = [dz + h_offset, dz + dh - h_offset]
+            if dh > 900.mm && dh <= 1600.mm
+              hinge_zs << dz + dh / 2.0
+            elsif dh > 1600.mm
+              hinge_zs = [dz + h_offset, dz + dh/3.0, dz + 2.0*dh/3.0, dz + dh - h_offset]
+            end
+            
+            is_right_hinge = (i == 1)
+            hx_carcass = is_right_hinge ? w - t : t
+            
+            hinge_zs.each do |hz|
+              m_hinge = apply_mat(model, "Hardware_Hinge", "", [150, 150, 150])
+              draw_blum_hinge(ent, hx_carcass, -t, hz, m_hinge, is_right_hinge)
+              
+              door_hx = is_right_hinge ? dw - 22.5.mm : 22.5.mm
+              door_part[:holes] << [hz - dz, door_hx, 17.5.to_mm, 12.mm]
+              
+              side_name = is_right_hinge ? "Right Side" : "Left Side"
+              side_part = @@dxf_parts.find { |p| p[:name] == side_name }
+              if side_part
+                side_part[:holes] << [hz - pl + 16.mm, 37.mm, 2.5.to_mm, 12.mm]
+                side_part[:holes] << [hz - pl - 16.mm, 37.mm, 2.5.to_mm, 12.mm]
+              end
+            end
+          end
+          
           @@dxf_parts << door_part
         end
       elsif f['front_type'] == "Drawers" && f['count'].to_i > 0
@@ -931,7 +1080,7 @@ module SmartCabinetMaker
               # Convert input string to length (supports units like '60cm')
               new_val = res[0].to_l.to_mm
               params['box'][h[:key]] = new_val
-              SmartCabinetMaker.build_cabinet(params, @cab)
+              SmartCabinet::Maker.build_cabinet(params, @cab)
             rescue
               UI.messagebox("Άκυρη τιμή μονάδας!")
             end
@@ -1537,10 +1686,11 @@ module SmartCabinetMaker
     @dialog.show
   end
 
-  unless file_loaded?("smart_cabinet_maker_pro") || defined?(@menu_loaded)
-    @menu_loaded = true
-    m = UI.menu("Plugins").add_submenu("Smart Cabinet Maker Pro")
-    m.add_item("Configurator") { self.show_dialog }
-    file_loaded("smart_cabinet_maker_pro")
+    unless file_loaded?("smart_cabinet_maker_pro") || defined?(@menu_loaded)
+      @menu_loaded = true
+      m = UI.menu("Plugins").add_submenu("Smart Cabinet Maker Pro")
+      m.add_item("Configurator") { self.show_dialog }
+      file_loaded("smart_cabinet_maker_pro")
+    end
   end
 end
