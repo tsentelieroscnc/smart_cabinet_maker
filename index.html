@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Smart Cabinet Maker Pro v13.4 - Absolute Total</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+        --bg-dark: #f5f5f7;
+        --sidebar-bg: #e1e1e6;
+        --card-bg: #ffffff;
+        --accent: #0078d4;
+        --accent-hover: #005a9e;
+        --text-title: #1a1a1a;
+        --text-body: #333333;
+        --text-muted: #666666;
+        --border-color: #d1d1d6;
+        --sidebar-width: 200px;
+        --color-globals: #0078d4;
+        --color-box: #d97706;
+        --color-joinery: #7c3aed;
+        --color-interior: #059669;
+        --color-fronts: #dc2626;
+        --color-materials: #4f46e5;
+    }
+    body { background-color: var(--bg-dark); color: var(--text-body); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
+    .layout { display: flex; flex: 1; overflow: hidden; width: 100%; }
+    .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .sidebar h2 { color: var(--text-title); font-size: 14px; padding: 20px 15px; margin: 0; border-bottom: 1px solid var(--border-color); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+    .tablink { background-color: transparent; color: var(--text-body); border: none; outline: none; cursor: pointer; padding: 14px 15px; text-align: left; font-size: 13px; font-weight: 600; border-left: 4px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+    .tablink svg { width: 18px; height: 18px; stroke-width: 2.5; }
+    .tablink:hover { background-color: rgba(0,0,0,0.05); }
+    .tablink.active { background-color: rgba(0,120,212,0.1); color: var(--accent); border-left: 4px solid var(--accent); }
+    .main-content { flex: 1; overflow-y: auto; padding: 20px; background: #ffffff; box-shadow: inset 5px 0 10px rgba(0,0,0,0.03); }
+    .tabcontent { display: none; max-width: 100%; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    h3 { margin: 0 0 20px 0; color: var(--text-title); font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+    .field { display: flex; align-items: center; margin-bottom: 12px; gap: 15px; }
+    .label-zone { width: 160px; flex: none; }
+    .label-main { font-size: 13px; font-weight: 700; color: #222; display: block; }
+    .label-help { font-size: 11px; color: var(--text-muted); display: block; margin-top: 3px; font-weight: 500; }
+    input, select { width: 100px; padding: 6px 10px; border: 1.5px solid var(--border-color); border-radius: 6px; height: 32px; font-size: 13px; font-weight: 600; background: #fff; box-sizing: border-box; }
+    input:focus, select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0,120,212,0.1); }
+    select { width: 140px; }
+    .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; }
+    .grid-item { display: flex; flex-direction: column; gap: 6px; }
+    .grid-item label { font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; }
+    .section-header { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #94a3b8; margin: 35px 0 15px 0; display: flex; align-items: center; letter-spacing: 1.5px; }
+    .section-header::after { content: ""; flex: 1; height: 1.5px; background: #f1f5f9; margin-left: 15px; }
+    .switch-container { display: flex; align-items: center; height: 36px; width: 120px; justify-content: flex-end; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--color-interior); }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .btn-build { width: 100%; background: var(--accent); color: white; border: none; padding: 16px; font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 14px; box-shadow: 0 4px 12px rgba(0,120,212,0.3); }
+    .btn-secondary { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 15px; cursor: pointer; font-size: 12px; border-radius: 6px; font-weight: 700; }
+    .browse-btn { padding: 0 14px; background: #f8fafc; border: 1.5px solid var(--border-color); border-left: none; cursor: pointer; border-radius: 0 6px 6px 0; height: 36px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="sidebar">
+      <h2>Cabinet Maker</h2>
+      <div style="padding: 12px; border-bottom: 1px solid var(--border-color);"><select id="preset_selector" onchange="loadPreset()" style="width: 100%;"><option value="">-- Πρότυπα --</option></select></div>
+      <button class="tablink active" onclick="openTab(event, 'globals')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-globals)"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Γενικά</button>
+      <button class="tablink" onclick="openTab(event, 'box')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-box)"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>Σώμα</button>
+      <button class="tablink" onclick="openTab(event, 'joinery')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-joinery)"><path d="M20 7h-9l-3-3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>Σύνδεση</button>
+      <button class="tablink" onclick="openTab(event, 'interior')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-interior)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>Εσωτερικό</button>
+      <button class="tablink" onclick="openTab(event, 'fronts')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-fronts)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>Προσόψεις</button>
+      <button class="tablink" onclick="openTab(event, 'materials')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-materials)"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>Υλικά</button>
+      <div style="margin-top:auto; padding:12px; border-top:1px solid var(--border-color);">
+        <div style="font-size:10px; font-weight:900; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:1px;">Tools & Vision</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">
+          <button onclick="callRuby('ghostMode')" style="padding:8px 4px; background:#f0f4ff; border:1.5px solid #c7d2fe; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#4f46e5;" title="Ghost Mode - Ημιδιαφάνεια">👻 Ghost</button>
+          <button onclick="callRuby('hideDoors')" style="padding:8px 4px; background:#fef3c7; border:1.5px solid #fcd34d; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#92400e;" title="Hide/Show Πόρτες">🚪 Doors</button>
+          <button onclick="callRuby('smartLens')" style="padding:8px 4px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#065f46;" title="Smart Lens Tool">🔍 Lens</button>
+          <button onclick="callRuby('resizeTool')" style="padding:8px 4px; background:#fdf4ff; border:1.5px solid #f0abfc; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#a21caf;" title="Εργαλείο Αλλαγής Διαστάσεων">📏 Resize</button>
+        </div>
+        <button class="btn-build" onclick="buildCabinet()" style="margin-bottom: 6px;">Build 3D</button>
+        <button class="btn-build" onclick="callRuby('exportDXF')" style="background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">📐 Export DXF</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div id="globals" class="tabcontent" style="display:block">
+        <h3>Γενικές Ρυθμίσεις</h3>
+        <div class="field"><div class="label-zone"><span class="label-main">Πάχος Υλικού (mm)</span></div><input type="number" id="mat_th" value="18"></div>
+        <div class="field"><div class="label-zone"><span class="label-main">Πάχος Πλάτης (mm)</span></div><input type="number" id="back_th" value="8"></div>
+        <div class="field"><div class="label-zone"><span class="label-main">Αρμός (Gap mm)</span></div><input type="number" id="gap" value="3"></div>
+        <div class="field">
+          <div class="label-zone"><span class="label-main">Ύψος Μπάζας (mm)</span></div>
+          <div style="display:flex; gap:5px;">
+            <input type="number" id="plinth" value="100" style="width:60px;">
+            <button class="btn-secondary" onclick="document.getElementById('plinth').value=100" style="padding:2px 5px; font-size:10px;">100</button>
+            <button class="btn-secondary" onclick="document.getElementById('plinth').value=120" style="padding:2px 5px; font-size:10px;">120</button>
+            <button class="btn-secondary" onclick="document.getElementById('plinth').value=150" style="padding:2px 5px; font-size:10px;">150</button>
+          </div>
+        </div>
+        <div class="field"><div class="label-zone"><span class="label-main">Πάχος PVC (mm)</span></div><input type="number" id="pvc_th" value="1"></div>
+        <div style="margin-top:40px; display:flex; gap:10px;"><input type="text" id="preset_name" placeholder="Όνομα..." style="flex:1"><button class="btn-secondary" onclick="savePreset()">Save Preset</button></div>
+      </div>
+      <div id="box" class="tabcontent">
+        <h3>Σώμα Ερμαρίου</h3>
+        <div class="field"><div class="label-zone"><span class="label-main">Τύπος Ερμαρίου</span></div><select id="cab_type" onchange="updateDefaults()"><option value="Base">Βάσης (760/560)</option><option value="Wall">Κρεμαστό (720/330)</option><option value="Wardrobe">Ντουλάπα (1600/580)</option></select></div>
+        <div class="property-grid"><div class="grid-item"><label>Πλάτος</label><input type="number" id="width" value="600"></div><div class="grid-item"><label>Ύψος</label><input type="number" id="height" value="760"></div><div class="grid-item"><label>Βάθος</label><input type="number" id="depth" value="560"></div><div class="grid-item"><label>Καπάκι</label><select id="top_type"><option value="Solid">Πάνελ</option><option value="Rails">Τραβέρσες</option></select></div></div>
+        <div class="field"><div class="label-zone"><span class="label-main">Φάρδος Τραβέρσας</span></div><input type="number" id="rail_width" value="100"></div>
+        <div class="section-header">Μπάζα (Plinth / Legs)</div>
+        <div class="property-grid">
+          <div class="grid-item">
+            <label>Τύπος Βάσης</label>
+            <select id="base_type">
+              <option value="Box">Κουτί (Περιμετρικά)</option>
+              <option value="FrontLegs">Εμπρός Μπάζα + Ποδαράκια</option>
+              <option value="LegsOnly">Μόνο Ποδαράκια</option>
+            </select>
+          </div>
+          <div class="grid-item"><label>Εμπρός Inset</label><input type="number" id="plinth_inset_f" value="50"></div>
+          <div class="grid-item"><label>Πίσω Inset</label><input type="number" id="plinth_inset_b" value="0"></div>
+        </div>
+      </div>
+      <div id="joinery" class="tabcontent">
+        <h3>Σύνδεση & Hardware</h3>
+        <div class="field"><div class="label-zone"><span class="label-main">Τύπος Σύνδεσης</span></div><select id="conn_type"><option value="SideOverTop">Sides over Top</option><option value="TopOverSide">Top over Sides</option><option value="Miter">Miter (45°)</option></select></div>
+        <div class="section-header">Connectors (CNC)</div>
+        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="connector_type" onchange="updateConnectorDefaults()"><option value="Screw_3.5">Βίδες 3.5</option><option value="Dowel">Καβίλιες Ø8</option><option value="Minifix">Minifix Ø15</option><option value="Lamello_Clamex">Lamello Clamex</option><option value="Cabineo">Cabineo Ø8</option><option value="None">None</option></select></div><div class="grid-item"><label>Mode</label><select id="connector_mode"><option value="Manual">Manual</option><option value="Auto">Auto</option></select></div><div class="grid-item"><label>Qty/Step</label><input type="number" id="connector_val" value="3"></div><div class="grid-item"><label>Offset</label><input type="number" id="connector_offset" value="37"></div></div>
+        <div class="section-header">Πλάτη & Γκινισιά</div>
+        <div class="property-grid"><div class="grid-item"><label>Τύπος Πλάτης</label><select id="back_type"><option value="Nailed">Καρφωτή</option><option value="Grooved">Γκινισιά</option><option value="Hybrid">Hybrid</option></select></div><div class="grid-item"><label>Inset Πλάτης</label><input type="number" id="back_inset" value="15"></div><div class="grid-item"><label>Βάθος Γκινισιάς</label><input type="number" id="groove_depth" value="8"></div></div>
+      </div>
+      <div id="interior" class="tabcontent">
+        <h3>Εσωτερικός Χώρος</h3>
+        <div class="field"><div class="label-zone"><span class="label-main">Κάθετοι Ορθοστάτες</span></div><input type="number" id="v_dividers" value="0"></div>
+        <div class="field"><div class="label-zone"><span class="label-main">Line Boring</span></div><div class="switch-container"><label class="switch"><input type="checkbox" id="line_boring"><span class="slider"></span></label></div></div>
+        <div class="property-grid">
+          <div class="grid-item"><label>Offset Εμπρός</label><input type="number" id="lb_offset_f" value="37"></div>
+          <div class="grid-item"><label>Offset Πίσω</label><input type="number" id="lb_offset_b" value="37"></div>
+          <div class="grid-item"><label>Βήμα (Step)</label><select id="lb_step"><option value="32">32 mm</option><option value="64">64 mm</option></select></div>
+          <div class="grid-item"><label>Τρύπες/Ράφι</label><select id="lb_qty"><option value="Full">Συνεχόμενες</option><option value="3">3</option><option value="5">5</option></select></div>
+        </div>
+        <div class="property-grid">
+          <div class="grid-item"><label>Αριθμός Ραφιών</label><input type="number" id="shelves" value="1"></div>
+          <div class="grid-item"><label>Inset Ραφιού</label><input type="number" id="shelf_inset" value="20"></div>
+        </div>
+        <div class="field"><div class="label-zone"><span class="label-main">Zone Splitter</span></div><select id="zone_split"><option value="None">None</option><option value="Vertical">Vertical</option><option value="Horizontal">Horizontal</option></select></div>
+      </div>
+      <div id="fronts" class="tabcontent">
+        <h3>Προσόψεις & Μηχανισμοί</h3>
+        <div class="property-grid"><div class="grid-item"><label>Τύπος</label><select id="front_type"><option value="Doors">Πόρτες</option><option value="Drawers">Συρτάρια</option><option value="Gola">Gola Front</option></select></div><div class="grid-item"><label>Overlay</label><select id="overlay_type"><option value="Full">Full</option><option value="Half">Half</option><option value="Inset">Inset</option></select></div><div class="grid-item"><label>Αριθμός (Π/Σ)</label><input type="number" id="front_count" value="2"></div></div>
+        <div class="section-header">Μεντεσέδες</div>
+        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="hinge_type" onchange="updateHingeDefaults()"><option value="Blum_ClipTop">Blum Clip Top 110°</option><option value="Blum_INSERTA">Blum INSERTA (press-in)</option><option value="Salice_110">Salice 110°</option><option value="Hettich_Sensys">Hettich Sensys M</option><option value="None">None</option></select></div><div class="grid-item"><label>Offset (mm)</label><input type="number" id="hinge_offset" value="100"></div></div>
+        <div class="section-header">Πόμολα & Gola Profile</div>
+        <div class="field"><div class="label-zone"><span class="label-main">Είδος Λαβής</span></div><select id="handle_type" onchange="toggleGolaSettings()"><option value="Bar">Bar (2 τρύπες)</option><option value="Knob">Knob (1 τρύπα)</option><option value="Gola">Gola Profile</option><option value="None">None</option></select></div>
+        <div id="handle_params_section"><div class="property-grid"><div class="grid-item"><label>Διάκεντρο</label><input type="number" id="handle_cc" value="128"></div><div class="grid-item"><label>Offset X</label><input type="number" id="handle_offset_x" value="40"></div><div class="grid-item"><label>Offset Z</label><input type="number" id="handle_offset_z" value="40"></div></div></div>
+        <div id="gola_params_section" style="display:none">
+          <div class="field" style="margin-bottom:12px;">
+            <div class="label-zone"><span class="label-main">Gola Hardware</span></div>
+            <select id="gola_preset" onchange="applyGolaPreset()" style="width:200px;">
+              <option value="custom">-- Custom / Χειροκίνητα --</option>
+              <option value="volpato_l">Volpato L-Profile (56x27mm)</option>
+              <option value="volpato_c">Volpato C-Profile (73x27mm)</option>
+              <option value="dtc_l">DTC L-Profile (56x27mm)</option>
+              <option value="dtc_c">DTC C-Profile (74x27mm)</option>
+            </select>
+          </div>
+          <div class="property-grid">
+            <div class="grid-item"><label>Προφίλ</label><select id="gola_type"><option value="L">L-Profile</option><option value="U">U-Profile</option></select></div>
+            <div class="grid-item"><label>Ύψος (H)</label><input type="number" id="gola_size" value="57"></div>
+            <div class="grid-item"><label>Βάθος (D)</label><input type="number" id="gola_depth" value="26"></div>
+            <div class="grid-item"><label>Radius</label><input type="number" id="gola_radius" value="5"></div>
+          </div>
+        </div>
+      </div>
+      <div id="materials" class="tabcontent">
+        <h3>Βιβλιοθήκη Υλικών</h3>
+        <div class="section-header">Σώμα</div>
+        <div class="property-grid"><div class="grid-item"><label>Όνομα</label><input type="text" id="mat_carcass_name" value="White"></div><div class="grid-item"><label>PVC</label><input type="text" id="mat_carcass_pvc" value="W1000"></div></div>
+        <div class="field"><div style="display:flex; flex:1; border:1px solid #ccc; border-radius:4px; overflow:hidden;"><input type="text" id="mat_carcass_tex" style="flex:1; border:none; padding:6px;"><button class="browse-btn" onclick="browseFile('mat_carcass_tex')">📁</button></div></div>
+        <div class="section-header">Πρόσοψη 1</div>
+        <div class="property-grid"><div class="grid-item"><label>Όνομα</label><input type="text" id="mat_front1_name" value="Oak"></div><div class="grid-item"><label>PVC</label><input type="text" id="mat_front1_pvc" value="Oak-PVC"></div></div>
+        <div class="field"><div style="display:flex; flex:1; border:1px solid #ccc; border-radius:4px; overflow:hidden;"><input type="text" id="mat_front1_tex" style="flex:1; border:none; padding:6px;"><button class="browse-btn" onclick="browseFile('mat_front1_tex')">📁</button></div></div>
+        <div class="section-header">Πρόσοψη 2</div>
+        <div class="property-grid"><div class="grid-item"><label>Όνομα</label><input type="text" id="mat_front2_name" value="Anthra"></div><div class="grid-item"><label>PVC</label><input type="text" id="mat_front2_pvc" value="Anthra-PVC"></div></div>
+        <div class="field"><div style="display:flex; flex:1; border:1px solid #ccc; border-radius:4px; overflow:hidden;"><input type="text" id="mat_front2_tex" style="flex:1; border:none; padding:6px;"><button class="browse-btn" onclick="browseFile('mat_front2_tex')">📁</button></div></div>
+        <div class="section-header">Λοιπά</div>
+        <div class="property-grid"><div class="grid-item"><label>Πλάτη</label><input type="text" id="mat_back_name" value="HDF White"></div><div class="grid-item"><label>Μπάζα</label><input type="text" id="mat_plinth_name" value="Aluminum"></div></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const GOLA_PRESETS = {
+        volpato_l: { type: "L", size: 57, depth: 26, radius: 5 },
+        volpato_c: { type: "U", size: 73, depth: 27, radius: 5 },
+        dtc_l: { type: "L", size: 57, depth: 26, radius: 5 },
+        dtc_c: { type: "U", size: 74, depth: 27, radius: 5 }
+    };
+
+    function callRuby(callbackName, ...args) {
+        if (typeof sketchup !== 'undefined' && sketchup[callbackName]) {
+            // Modern CEF bridge
+            sketchup[callbackName](...args);
+        } else {
+            // Legacy fallback
+            var url = 'skp:' + callbackName;
+            if (args.length > 0) {
+                url += '@' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join('@');
+            }
+            window.location.href = url;
+        }
+    }
+
+    function applyGolaPreset() {
+        const v = document.getElementById("gola_preset").value;
+        if (v && GOLA_PRESETS[v]) {
+            const p = GOLA_PRESETS[v];
+            document.getElementById("gola_type").value = p.type;
+            document.getElementById("gola_size").value = p.size;
+            document.getElementById("gola_depth").value = p.depth;
+            document.getElementById("gola_radius").value = p.radius;
+        }
+    }
+
+    // Αλλάζει αυτόματα το default offset ανάλογα με τον connector
+    var CONNECTOR_OFFSETS = {
+        "Screw_3.5":     { offset: 37, label: "Βίδες 3.5mm" },
+        "Dowel":         { offset: 37, label: "Καβίλιες Ø8mm" },
+        "Minifix":       { offset: 37, label: "Minifix Ø15mm" },
+        "Lamello_Clamex":{ offset: 50, label: "Lamello Clamex P-14" },
+        "Cabineo":       { offset: 37, label: "Cabineo Ø8mm" },
+        "None":          { offset: 37, label: "" }
+    };
+    function updateConnectorDefaults() {
+        var ct = document.getElementById('connector_type').value;
+        var info = CONNECTOR_OFFSETS[ct];
+        if (info) {
+            document.getElementById('connector_offset').value = info.offset;
+        }
+        // Αν None, απόκρυψε τα υπόλοιπα πεδία connector
+        var showFields = (ct !== "None");
+        var modeEl = document.getElementById('connector_mode');
+        var valEl  = document.getElementById('connector_val');
+        var offEl  = document.getElementById('connector_offset');
+        if (modeEl && modeEl.parentElement && modeEl.parentElement.parentElement) {
+            modeEl.parentElement.parentElement.style.opacity = showFields ? "1" : "0.4";
+        }
+    }
+
+    // Αλλάζει αυτόματα το hinge offset ανά τύπο μεντεσέ
+    var HINGE_OFFSETS = {
+        "Blum_ClipTop":   { offset: 100 },
+        "Blum_INSERTA":   { offset: 100 },
+        "Salice_110":     { offset: 100 },
+        "Hettich_Sensys": { offset: 100 },
+        "None":           { offset: 100 }
+    };
+    function updateHingeDefaults() {
+        var ht = document.getElementById('hinge_type').value;
+        var info = HINGE_OFFSETS[ht];
+        if (info) {
+            document.getElementById('hinge_offset').value = info.offset;
+        }
+    }
+    function openTab(evt, tabName) {
+        var i, tc, tl; tc = document.getElementsByClassName("tabcontent"); for (i=0; i<tc.length; i++) tc[i].style.display = "none";
+        tl = document.getElementsByClassName("tablink"); for (i=0; i<tl.length; i++) tl[i].className = tl[i].className.replace(" active", "");
+        document.getElementById(tabName).style.display = "block"; if (evt) evt.currentTarget.className += " active";
+    }
+    function updateDefaults() { var t = document.getElementById('cab_type').value; if (t === "Base") { document.getElementById('height').value = 760; document.getElementById('depth').value = 560; } }
+    function toggleGolaSettings() { var v = document.getElementById('handle_type').value; document.getElementById('gola_params_section').style.display = (v === 'Gola') ? 'block' : 'none'; document.getElementById('handle_params_section').style.display = (v === 'Gola' || v === 'None') ? 'none' : 'block'; }
+    function browseFile(id) { callRuby('browseFile', id); }
+    function setFilePath(id, path) { document.getElementById(id).value = path; }
+    function getVal(id) { return document.getElementById(id).value; }
+    function collectData() { return { 
+        global: { materialThickness: parseFloat(document.getElementById('mat_th').value), backThickness: parseFloat(document.getElementById('back_th').value), gap: parseFloat(document.getElementById('gap').value), base_type: getVal('base_type'), plinthHeight: parseFloat(document.getElementById('plinth').value), pvcThickness: parseFloat(document.getElementById('pvc_th').value) },
+        box: { cab_type: document.getElementById('cab_type').value, width: parseFloat(document.getElementById('width').value), height: parseFloat(document.getElementById('height').value), depth: parseFloat(document.getElementById('depth').value), backType: document.getElementById('back_type').value, topType: document.getElementById('top_type').value, railWidth: parseFloat(document.getElementById('rail_width').value), connType: document.getElementById('conn_type').value, backInset: parseFloat(document.getElementById('back_inset').value), grooveDepth: parseFloat(document.getElementById('groove_depth').value), plinthInsetF: parseFloat(document.getElementById('plinth_inset_f').value), plinthInsetB: parseFloat(document.getElementById('plinth_inset_b').value), connector_type: document.getElementById('connector_type').value, connector_mode: document.getElementById('connector_mode').value, connector_val: parseFloat(document.getElementById('connector_val').value), connector_offset: parseFloat(document.getElementById('connector_offset').value) },
+        front: { front_type: document.getElementById('front_type').value, overlay_type: document.getElementById('overlay_type').value, count: parseInt(document.getElementById('front_count').value), hingeType: document.getElementById('hinge_type').value, hingeOffset: parseFloat(document.getElementById('hinge_offset').value), handle_type: document.getElementById('handle_type').value, handle_cc: parseFloat(document.getElementById('handle_cc').value), handle_offset_x: parseFloat(document.getElementById('handle_offset_x').value), handle_offset_z: parseFloat(document.getElementById('handle_offset_z').value), gola_size: parseFloat(document.getElementById('gola_size').value), gola_depth: parseFloat(document.getElementById('gola_depth').value), gola_radius: parseFloat(document.getElementById('gola_radius').value), gola_type: document.getElementById('gola_type').value },
+        interior: { v_dividers: parseInt(document.getElementById('v_dividers').value), shelves: parseInt(document.getElementById('shelves').value), line_boring: document.getElementById('line_boring').checked, lb_offset_f: parseFloat(document.getElementById('lb_offset_f').value), lb_offset_b: parseFloat(document.getElementById('lb_offset_b').value), lb_step: parseFloat(document.getElementById('lb_step').value), lb_qty: document.getElementById('lb_qty').value, shelf_inset: parseFloat(document.getElementById('shelf_inset').value), zone_split: document.getElementById('zone_split').value },
+        materials: { mat_carcass_name: document.getElementById('mat_carcass_name').value, mat_carcass_pvc: document.getElementById('mat_carcass_pvc').value, mat_carcass_tex: document.getElementById('mat_carcass_tex').value, mat_front1_name: document.getElementById('mat_front1_name').value, mat_front1_pvc: document.getElementById('mat_front1_pvc').value, mat_front1_tex: document.getElementById('mat_front1_tex').value, mat_front2_name: document.getElementById('mat_front2_name').value, mat_front2_pvc: document.getElementById('mat_front2_pvc').value, mat_front2_tex: document.getElementById('mat_front2_tex').value, mat_back_name: document.getElementById('mat_back_name').value, mat_plinth_name: document.getElementById('mat_plinth_name').value }
+    }; }
+    function buildCabinet() { callRuby('buildCabinet', JSON.stringify(collectData())); }
+    function savePreset() { callRuby('savePreset', document.getElementById('preset_name').value, JSON.stringify(collectData())); }
+    function loadPreset() { callRuby('loadPreset', document.getElementById('preset_selector').value); }
+
+    function updatePresetsList(presets) {
+        const sel = document.getElementById("preset_selector");
+        sel.innerHTML = '<option value="">-- Πρότυπα --</option>';
+        for (const name in presets) {
+            if (presets.hasOwnProperty(name)) {
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                sel.appendChild(opt);
+            }
+        }
+    }
+
+    function loadPresetData(data) {
+        if (!data) return;
+        
+        // Globals
+        if (data.global) {
+            if (data.global.materialThickness !== undefined) document.getElementById('mat_th').value = data.global.materialThickness;
+            if (data.global.backThickness !== undefined) document.getElementById('back_th').value = data.global.backThickness;
+            if (data.global.gap !== undefined) document.getElementById('gap').value = data.global.gap;
+            if (data.global.base_type !== undefined) document.getElementById('base_type').value = data.global.base_type;
+            if (data.global.plinthHeight !== undefined) document.getElementById('plinth').value = data.global.plinthHeight;
+            if (data.global.pvcThickness !== undefined) document.getElementById('pvc_th').value = data.global.pvcThickness;
+        }
+        
+        // Box
+        if (data.box) {
+            if (data.box.cab_type !== undefined) {
+                document.getElementById('cab_type').value = data.box.cab_type;
+                updateDefaults();
+            }
+            if (data.box.width !== undefined) document.getElementById('width').value = data.box.width;
+            if (data.box.height !== undefined) document.getElementById('height').value = data.box.height;
+            if (data.box.depth !== undefined) document.getElementById('depth').value = data.box.depth;
+            if (data.box.backType !== undefined) document.getElementById('back_type').value = data.box.backType;
+            if (data.box.topType !== undefined) document.getElementById('top_type').value = data.box.topType;
+            if (data.box.railWidth !== undefined) document.getElementById('rail_width').value = data.box.railWidth;
+            if (data.box.connType !== undefined) document.getElementById('conn_type').value = data.box.connType;
+            if (data.box.backInset !== undefined) document.getElementById('back_inset').value = data.box.backInset;
+            if (data.box.grooveDepth !== undefined) document.getElementById('groove_depth').value = data.box.grooveDepth;
+            if (data.box.plinthInsetF !== undefined) document.getElementById('plinth_inset_f').value = data.box.plinthInsetF;
+            if (data.box.plinthInsetB !== undefined) document.getElementById('plinth_inset_b').value = data.box.plinthInsetB;
+            if (data.box.connector_type !== undefined) document.getElementById('connector_type').value = data.box.connector_type;
+            if (data.box.connector_mode !== undefined) document.getElementById('connector_mode').value = data.box.connector_mode;
+            if (data.box.connector_val !== undefined) document.getElementById('connector_val').value = data.box.connector_val;
+            if (data.box.connector_offset !== undefined) document.getElementById('connector_offset').value = data.box.connector_offset;
+        }
+        
+        // Front
+        if (data.front) {
+            let front_type = data.front.front_type !== undefined ? data.front.front_type : data.front.type;
+            if (front_type !== undefined) document.getElementById('front_type').value = front_type;
+            if (data.front.overlay_type !== undefined) document.getElementById('overlay_type').value = data.front.overlay_type;
+            if (data.front.count !== undefined) document.getElementById('front_count').value = data.front.count;
+            if (data.front.hingeType !== undefined) document.getElementById('hinge_type').value = data.front.hingeType;
+            if (data.front.hingeOffset !== undefined) document.getElementById('hinge_offset').value = data.front.hingeOffset;
+            
+            let handle_type = data.front.handle_type !== undefined ? data.front.handle_type : data.front.handles;
+            if (handle_type !== undefined) {
+                document.getElementById('handle_type').value = handle_type;
+                toggleGolaSettings();
+            }
+            if (data.front.handle_cc !== undefined) document.getElementById('handle_cc').value = data.front.handle_cc;
+            if (data.front.handle_offset_x !== undefined) document.getElementById('handle_offset_x').value = data.front.handle_offset_x;
+            if (data.front.handle_offset_z !== undefined) document.getElementById('handle_offset_z').value = data.front.handle_offset_z;
+            if (data.front.gola_size !== undefined) document.getElementById('gola_size').value = data.front.gola_size;
+            if (data.front.gola_depth !== undefined) document.getElementById('gola_depth').value = data.front.gola_depth;
+            if (data.front.gola_radius !== undefined) document.getElementById('gola_radius').value = data.front.gola_radius;
+            if (data.front.gola_type !== undefined) document.getElementById('gola_type').value = data.front.gola_type;
+        }
+        
+        // Interior
+        if (data.interior) {
+            if (data.interior.v_dividers !== undefined) document.getElementById('v_dividers').value = data.interior.v_dividers;
+            if (data.interior.shelves !== undefined) document.getElementById('shelves').value = data.interior.shelves;
+            if (data.interior.line_boring !== undefined) document.getElementById('line_boring').checked = data.interior.line_boring;
+            if (data.interior.lb_offset_f !== undefined) document.getElementById('lb_offset_f').value = data.interior.lb_offset_f;
+            if (data.interior.lb_offset_b !== undefined) document.getElementById('lb_offset_b').value = data.interior.lb_offset_b;
+            if (data.interior.lb_step !== undefined) document.getElementById('lb_step').value = data.interior.lb_step;
+            if (data.interior.lb_qty !== undefined) document.getElementById('lb_qty').value = data.interior.lb_qty;
+            if (data.interior.shelf_inset !== undefined) document.getElementById('shelf_inset').value = data.interior.shelf_inset;
+            if (data.interior.zone_split !== undefined) document.getElementById('zone_split').value = data.interior.zone_split;
+        }
+        
+        // Materials
+        if (data.materials) {
+            if (data.materials.mat_carcass_name !== undefined) document.getElementById('mat_carcass_name').value = data.materials.mat_carcass_name;
+            if (data.materials.mat_carcass_pvc !== undefined) document.getElementById('mat_carcass_pvc').value = data.materials.mat_carcass_pvc;
+            if (data.materials.mat_carcass_tex !== undefined) document.getElementById('mat_carcass_tex').value = data.materials.mat_carcass_tex;
+            if (data.materials.mat_front1_name !== undefined) document.getElementById('mat_front1_name').value = data.materials.mat_front1_name;
+            if (data.materials.mat_front1_pvc !== undefined) document.getElementById('mat_front1_pvc').value = data.materials.mat_front1_pvc;
+            if (data.materials.mat_front1_tex !== undefined) document.getElementById('mat_front1_tex').value = data.materials.mat_front1_tex;
+            if (data.materials.mat_front2_name !== undefined) document.getElementById('mat_front2_name').value = data.materials.mat_front2_name;
+            if (data.materials.mat_front2_pvc !== undefined) document.getElementById('mat_front2_pvc').value = data.materials.mat_front2_pvc;
+            if (data.materials.mat_front2_tex !== undefined) document.getElementById('mat_front2_tex').value = data.materials.mat_front2_tex;
+            if (data.materials.mat_back_name !== undefined) document.getElementById('mat_back_name').value = data.materials.mat_back_name;
+            if (data.materials.mat_plinth_name !== undefined) document.getElementById('mat_plinth_name').value = data.materials.mat_plinth_name;
+        }
+    }
+
+    window.onload = function() { callRuby('fetchPresets'); };
+  </script>
+</body>
+</html>
