@@ -307,25 +307,15 @@ module SmartCabinetMaker
 
     cup_r      = spec[:cup_r].mm
     cup_depth  = spec[:cup_depth].mm
-    cup_off_y  = spec[:cup_offset].mm   # από μπροστινή άκρη πόρτας
+    cup_off_x  = 22.5.mm
     plate_w    = spec[:plate_w].mm
     plate_d    = spec[:plate_d].mm
     plate_h    = spec[:plate_h].mm
-    arm_len    = spec[:arm_len].mm
     screw_r    = spec[:screw_r].mm
     hw_color   = spec[:color]
 
-    # Overlay: καθορίζει πόσο μέσα βλέπει το cup από την άκρη της πόρτας (X)
-    cup_x_inset = case overlay_type
-                  when "Half"  then t / 2.0
-                  when "Inset" then t + 2.mm
-                  else              t / 2.0   # Full overlay
-                  end
-
-    # Auto qty βάσει ύψους
     qty = calc_hinge_qty(door_h.to_mm)
 
-    # Κατανομή Z θέσεων (SmartWop: πάντα offset από άκρες, μεσαίος στο κέντρο)
     hinge_z_positions = []
     if qty == 2
       hinge_z_positions = [door_z + hinge_offset_v, door_z + door_h - hinge_offset_v]
@@ -342,58 +332,33 @@ module SmartCabinetMaker
       end
     end
 
-    # X του cup μέσα στην πόρτα (τοπικό)
-    # Αριστερή πόρτα (door_idx==0): cup είναι αριστερά, βλέπει προς +X
-    # Δεξιά πόρτα (door_idx==1):    cup είναι δεξιά, βλέπει προς -X
     is_left_door = (door_idx == 0)
 
-    m_hinge = apply_mat(
-      Sketchup.active_model,
-      "Hardware_Hinge_#{hinge_type}",
-      "",
-      hw_color
-    )
+    m_hinge = apply_mat(Sketchup.active_model, "Hardware_Hinge_#{hinge_type}", "", hw_color)
 
     hinge_z_positions.each_with_index do |hz, idx|
 
-      # ------------------------------------------------------------------
-      # 1. CUP HOLE στην πόρτα (κυκλική τρύπα Ø35)
-      # ------------------------------------------------------------------
       if is_left_door
-        cup_cx = door_x + cup_x_inset
-        cup_dir = [-1, 0, 0]   # τρύπα βλέπει αριστερά (εξωτερική επιφάνεια)
-        cup_cy  = 0.mm         # Y: εμπρός επιφάνεια πόρτας στο Y=0 (σχετικό)
+        cup_cx = door_x + cup_off_x
       else
-        cup_cx = door_x + door_w - cup_x_inset
-        cup_dir = [1, 0, 0]
-        cup_cy  = 0.mm
+        cup_cx = door_x + door_w - cup_off_x
       end
+      
+      cup_cy = 0.mm
+      cup_dir = [0, 1, 0]
 
-      # Τρύπα cup στην πόρτα (από την εσωτερική πλευρά)
-      cup_face_x = is_left_door ? door_x : door_x + door_w
-      hole(door_ents,
-           [cup_face_x, cup_off_y, hz],
-           cup_dir, cup_r, cup_depth, "C_BORE_35")
+      hole(door_ents, [cup_cx, cup_cy, hz], cup_dir, cup_r, cup_depth, "C_BORE_35")
 
-      # DXF εγγραφή για πόρτα
-      local_cup_x = is_left_door ? cup_x_inset.to_mm : (door_w - cup_x_inset).to_mm
-      door_part[:holes] << [hz.to_mm - door_z.to_mm, local_cup_x, cup_r, cup_depth]
+      door_part[:holes] << [hz.to_mm - door_z.to_mm, cup_off_x.to_mm, cup_r, cup_depth]
 
-      # ------------------------------------------------------------------
-      # 2. ΚΟΡΜΟΣ μεντεσέ (cup body) — κυλινδρικό σώμα μέσα στη τρύπα
-      # ------------------------------------------------------------------
       cup_grp = cab_ents.add_group
       cup_grp.name = "Hinge_Cup_#{idx+1}_Door#{door_idx+1}"
       cup_grp.material = m_hinge
 
-      ci_cup = cup_grp.entities.add_circle(
-        [cup_face_x, cup_off_y, hz],
-        cup_dir, cup_r - 1.mm
-      )
+      ci_cup = cup_grp.entities.add_circle([cup_cx, cup_cy, hz], cup_dir, cup_r - 1.mm)
       f_cup = cup_grp.entities.add_face(ci_cup) rescue nil
       if f_cup
-        f_cup.reverse! if (is_left_door && f_cup.normal.x > 0) ||
-                          (!is_left_door && f_cup.normal.x < 0)
+        f_cup.reverse! if f_cup.normal.y > 0
         f_cup.pushpull(cup_depth - 1.mm)
       end
 
@@ -401,71 +366,48 @@ module SmartCabinetMaker
       cup_comp.definition.name = "#{hinge_type}_Cup"
       cup_comp.name = "#{hinge_type}_Cup"
       cup_comp.material = m_hinge
-      ["opencutlist", "OpenCutList"].each do |dict|
-        cup_comp.material.set_attribute(dict, "type", "hardware") rescue nil
-      end
+      ["opencutlist", "OpenCutList"].each { |d| cup_comp.material.set_attribute(d, "type", "hardware") rescue nil }
 
-      # ------------------------------------------------------------------
-      # 3. ΒΡΑΧΙΟΝΑΣ (arm) — συνδέει cup με πλάκα στήριξης
-      # ------------------------------------------------------------------
       arm_grp = cab_ents.add_group
       arm_grp.name = "Hinge_Arm_#{idx+1}_Door#{door_idx+1}"
       arm_grp.material = m_hinge
 
       arm_h    = 8.mm
-      arm_w_mm = 12.mm
-      arm_y0   = cup_off_y - arm_w_mm / 2.0
+      arm_d    = 25.mm
+      arm_y0   = 5.mm
 
       if is_left_door
-        arm_x0 = cup_face_x
-        box(arm_grp.entities, arm_x0, arm_y0, hz - arm_h / 2.0,
-            arm_len, arm_w_mm, arm_h)
+        arm_w = (cup_cx - side_inner_x).abs
+        box(arm_grp.entities, side_inner_x, arm_y0, hz - arm_h / 2.0, arm_w, arm_d, arm_h)
       else
-        arm_x0 = cup_face_x - arm_len
-        box(arm_grp.entities, arm_x0, arm_y0, hz - arm_h / 2.0,
-            arm_len, arm_w_mm, arm_h)
+        arm_w = (side_inner_x - cup_cx).abs
+        box(arm_grp.entities, cup_cx, arm_y0, hz - arm_h / 2.0, arm_w, arm_d, arm_h)
       end
 
       arm_comp = arm_grp.to_component
       arm_comp.definition.name = "#{hinge_type}_Arm"
       arm_comp.name = "#{hinge_type}_Arm"
       arm_comp.material = m_hinge
-      ["opencutlist", "OpenCutList"].each do |dict|
-        arm_comp.material.set_attribute(dict, "type", "hardware") rescue nil
-      end
+      ["opencutlist", "OpenCutList"].each { |d| arm_comp.material.set_attribute(d, "type", "hardware") rescue nil }
 
-      # ------------------------------------------------------------------
-      # 4. ΠΛΑΚΑ ΣΤΗΡΙΞΗΣ (mounting plate) στο side panel
-      # ------------------------------------------------------------------
       plate_grp = cab_ents.add_group
       plate_grp.name = "Hinge_Plate_#{idx+1}_Door#{door_idx+1}"
       plate_grp.material = m_hinge
 
-      plate_y0 = cup_off_y - plate_d / 2.0
-      plate_z0 = hz - plate_w / 2.0
+      plate_cy = 37.mm
 
       if is_left_door
-        # Πλάκα στο εσωτερικό του αριστερού side (inner face = side_inner_x)
-        box(plate_grp.entities,
-            side_inner_x, plate_y0, plate_z0,
-            plate_h, plate_d, plate_w)
-        # Τρύπες βίδας πλάκας στο side
+        box(plate_grp.entities, side_inner_x, plate_cy - plate_d/2.0, hz - plate_w/2.0, plate_h, plate_d, plate_w)
         if screw_r > 0
-          [plate_y0 + 7.mm, plate_y0 + plate_d - 7.mm].each do |sy|
-            hole(cab_ents,
-                 [side_inner_x, sy, plate_z0 + plate_w / 2.0],
-                 [1, 0, 0], screw_r, 15.mm, "DRILL_HINGE_PLATE")
+          [-16.mm, 16.mm].each do |z_off|
+            hole(cab_ents, [side_inner_x, plate_cy, hz + z_off], [1, 0, 0], screw_r, 15.mm, "DRILL_HINGE_PLATE")
           end
         end
       else
-        box(plate_grp.entities,
-            side_inner_x - plate_h, plate_y0, plate_z0,
-            plate_h, plate_d, plate_w)
+        box(plate_grp.entities, side_inner_x - plate_h, plate_cy - plate_d/2.0, hz - plate_w/2.0, plate_h, plate_d, plate_w)
         if screw_r > 0
-          [plate_y0 + 7.mm, plate_y0 + plate_d - 7.mm].each do |sy|
-            hole(cab_ents,
-                 [side_inner_x, sy, plate_z0 + plate_w / 2.0],
-                 [-1, 0, 0], screw_r, 15.mm, "DRILL_HINGE_PLATE")
+          [-16.mm, 16.mm].each do |z_off|
+            hole(cab_ents, [side_inner_x, plate_cy, hz + z_off], [-1, 0, 0], screw_r, 15.mm, "DRILL_HINGE_PLATE")
           end
         end
       end
@@ -474,11 +416,9 @@ module SmartCabinetMaker
       plate_comp.definition.name = "#{hinge_type}_Plate"
       plate_comp.name = "#{hinge_type}_Plate"
       plate_comp.material = m_hinge
-      ["opencutlist", "OpenCutList"].each do |dict|
-        plate_comp.material.set_attribute(dict, "type", "hardware") rescue nil
-      end
+      ["opencutlist", "OpenCutList"].each { |d| plate_comp.material.set_attribute(d, "type", "hardware") rescue nil }
 
-    end # hinge_z_positions.each
+    end
   end
 
   # =========================================================================
@@ -559,6 +499,14 @@ module SmartCabinetMaker
     spec = CONNECTOR_SPECS[conn_type]
     return unless spec
 
+    b = part_data[:b] || {}
+    tt = b['topType'] || "Solid"
+    rw = b['railWidth'].to_f.mm
+    # is_gola comes from part_data (set in create_p from front data, not box data)
+    is_gola = part_data[:is_gola] || false
+    groove_depth = b['grooveDepth'].to_f.mm
+    gola_depth_val = part_data[:gola_depth] || 0  # Gola channel depth (from front data)
+
     r_pilot  = spec[:pilot][0].mm
     d_pilot  = spec[:pilot][1].mm
     r_recv   = spec[:recv][0].mm
@@ -570,95 +518,117 @@ module SmartCabinetMaker
     m_hw = apply_mat(Sketchup.active_model, "Hardware_#{conn_type}", "", [180, 180, 185])
 
     # -----------------------------------------------------------------------
+    # SmartWop placement rules:
+    #   * Connectors are distributed along the DEPTH (Y axis) of the joint edge
+    #   * edge_off = distance from front/back face of cabinet to nearest hole
+    #   * On HORIZONTAL panels: one set of holes near each END (left & right)
+    #     where the panel meets the side panels — X position = t/2 from end
+    #     (centered over the side panel thickness)
+    #   * On SIDE panels: matching Y positions, drilled horizontally (X axis)
+    #     at join_z = center-of-thickness of each horizontal panel
+    # -----------------------------------------------------------------------
+
+    # --- Common Y-distribution along DEPTH (same for both panel types) ---
+    qty = calc_connector_qty(pd_val.to_mm, conn_mode, conn_val)
+    positions_y = []
+    if qty <= 1
+      positions_y = [pd_val / 2.0]
+    elsif qty == 2
+      positions_y = [edge_off, pd_val - edge_off]
+    elsif qty == 3
+      positions_y = [edge_off, pd_val / 2.0, pd_val - edge_off]
+    else
+      step = (pd_val - 2.0 * edge_off) / (qty - 1).to_f
+      (0...qty).each { |i| positions_y << edge_off + i * step }
+    end
+
+    # -----------------------------------------------------------------------
     # HORIZONTAL PANELS (top / bottom)
-    # SideOverTop: το οριζόντιο μπαίνει ΜΕΣΑ στα sides
-    # => τρυπάμε και τις δύο άκρες (αριστερά X και δεξιά X) κατά μήκος panel
+    # Pilot holes drilled through face (Z axis) near each END of the panel.
+    # X position: t/2 in from each end = centered over the side panel.
+    # Y positions: distributed along depth (edge_off from front & back).
     # -----------------------------------------------------------------------
     if is_horiz
-      # Μήκος του οριζόντιου = pw (κατά X)
-      qty = calc_connector_qty(pw.to_mm, conn_mode, conn_val)
-
-      # Κατανομή θέσεων κατά X (συμμετρική, SmartWop style)
-      positions_x = []
-      if qty == 2
-        positions_x = [edge_off, pw - edge_off]
-      elsif qty == 3
-        positions_x = [edge_off, pw / 2.0, pw - edge_off]
-      else
-        step = (pw - 2.0 * edge_off) / (qty - 1).to_f
-        (0...qty).each do |i|
-          positions_x << edge_off + i * step
-        end
-      end
-
-      # Y θέση: κέντρο βάθους panel
-      cy = y + pd_val / 2.0
-
-      # Z θέση pilot: επάνω ή κάτω ανάλογα (τρυπάμε από κάτω για bottom, από πάνω για top)
       is_bottom = nm.downcase.include?("bottom")
       is_top    = nm.downcase.include?("top") && !nm.downcase.include?("rail")
 
-      positions_x.each do |cx_off|
-        cx = x + cx_off
+      # X of hole centers: t/2 in from left end, t/2 in from right end
+      x_left  = x + t / 2.0
+      x_right = x + pw - t / 2.0
 
-        if is_bottom
-          # Τρύπα pilot: από κάτω της επιφάνειας, ανεβαίνει προς τα πάνω
-          hole(p_ents, [cx, cy, z + ph], [0, 0, -1], r_pilot, d_pilot, "C_BORE_#{(r_pilot*2).to_mm.round}")
-          part_data[:holes] << [cx_off.to_mm, (cy - y).to_mm, r_pilot, d_pilot]
-        elsif is_top
-          # Τρύπα pilot: από πάνω, κατεβαίνει
-          hole(p_ents, [cx, cy, z], [0, 0, 1], r_pilot, d_pilot, "C_BORE_#{(r_pilot*2).to_mm.round}")
-          part_data[:holes] << [cx_off.to_mm, (cy - y).to_mm, r_pilot, d_pilot]
+      [x_left, x_right].each do |cx|
+        positions_y.each do |cy_off|
+          cy = y + cy_off
+          local_x = (cx - x).to_mm
+          local_y = cy_off.to_mm
+
+          if is_bottom
+            # Drill from TOP face downward (screw enters from below cabinet floor)
+            hole(p_ents, [cx, cy, z + ph], [0, 0, -1], r_pilot, d_pilot,
+                 "C_BORE_#{(r_pilot * 2).to_mm.round}")
+            part_data[:holes] << [local_x, local_y, r_pilot, d_pilot]
+          elsif is_top
+            # Drill from BOTTOM face upward (screw enters from above cabinet ceiling)
+            hole(p_ents, [cx, cy, z], [0, 0, 1], r_pilot, d_pilot,
+                 "C_BORE_#{(r_pilot * 2).to_mm.round}")
+            part_data[:holes] << [local_x, local_y, r_pilot, d_pilot]
+          end
         end
       end
     end
 
     # -----------------------------------------------------------------------
     # SIDE PANELS (left / right)
-    # Δέχονται τον connector που έρχεται οριζόντια από το horizontal panel
-    # => τρυπάμε στην εσωτερική επιφάνεια (Y-axis), στο ύψος των horizontals
+    # Receiving holes drilled from the INNER face (X axis) at the Z height
+    # of each horizontal panel's midplane.
+    # Y positions must match the horizontal panel's Y positions exactly.
     # -----------------------------------------------------------------------
     if side_type
-      is_left  = (side_type == :l)
-      # Εσωτερική X επιφάνεια
-      inner_x  = is_left ? (x + pw) : x
+      is_left   = (side_type == :l)
+      inner_x   = is_left ? (x + pw) : x
       drill_dir = is_left ? [1, 0, 0] : [-1, 0, 0]
 
-      # Ύψος σύνδεσης για bottom panel: z = pl + t => center at pl + t/2
-      # Ύψος σύνδεσης για top panel:    z = pl + h - t => center at pl + h - t/2
-      # Για SideOverTop τα sides τρέχουν από pl έως pl+h
-      # Bottom join Z
-      bottom_join_z = z + t / 2.0          # μέσα του bottom panel
-      top_join_z    = z + ph - t / 2.0     # μέσα του top panel
-
-      # Μήκος του horizontal = pw του side = pw
-      qty = calc_connector_qty(pw.to_mm, conn_mode, conn_val)
-
-      positions_y = []
-      panel_len = pd_val  # βάθος side panel
-      if qty == 2
-        positions_y = [edge_off, panel_len - edge_off]
-      elsif qty == 3
-        positions_y = [edge_off, panel_len / 2.0, panel_len - edge_off]
+      # join_z = Z coordinate of horizontal panel midplane
+      # SideOverTop: side spans z=pl..pl+h, horizontals sit inside
+      #   bottom midplane = z + t/2,  top midplane = z + ph - t/2
+      # TopOverSide: side spans z=pl+t..pl+h-t, horizontals overlap
+      #   bottom midplane = z - t/2,  top midplane = z + ph + t/2
+      if construction == "SideOverTop"
+        bottom_join_z = z + t / 2.0
+        top_join_z    = z + ph - t / 2.0
       else
-        step = (panel_len - 2.0 * edge_off) / (qty - 1).to_f
-        (0...qty).each do |i|
-          positions_y << edge_off + i * step
-        end
+        bottom_join_z = z - t / 2.0
+        top_join_z    = z + ph + t / 2.0
       end
 
       [bottom_join_z, top_join_z].each do |join_z|
-        positions_y.each do |cy_off|
+        curr_pos_y = positions_y
+
+        # For Rails top: override Y positions to match rail centers
+        if join_z == top_join_z && tt == "Rails"
+          if is_gola
+            # Gola: only back rail (gola front rail uses its own fixing system)
+            curr_pos_y = [pd_val - rw / 2.0]
+          else
+            # Standard rails: front rail center (rw/2) and back rail center
+            curr_pos_y = [rw / 2.0, pd_val - rw / 2.0]
+          end
+        end
+
+        curr_pos_y.each do |cy_off|
           cy = y + cy_off
 
-          # Τρύπα υποδοχής (recv) στο side
-          hole(p_ents, [inner_x, cy, join_z], drill_dir, r_recv, d_recv, "C_BORE_#{(r_recv*2).to_mm.round}")
+          # Receiving hole in side panel
+          hole(p_ents, [inner_x, cy, join_z], drill_dir, r_recv, d_recv,
+               "C_BORE_#{(r_recv * 2).to_mm.round}")
 
-          # 3D κεφαλή connector (μικρό κυλινδρικό εξάρτημα)
+          # 3D hardware display (connector head visible on outer face)
           hw_grp = p_ents.add_group
           hw_grp.name = "Connector_#{conn_type}"
           hw_grp.material = m_hw
-          hole(hw_grp.entities, [inner_x, cy, join_z], drill_dir, r_head, d_head, "C_BORE_#{(r_head*2).to_mm.round}")
+          outer_x = is_left ? x : (x + pw)
+          hw_dir = is_left ? [-1, 0, 0] : [1, 0, 0]
+          hole(hw_grp.entities, [outer_x, cy, join_z], hw_dir, r_head, d_head, "C_BORE_#{(r_head*2).to_mm.round}")
           hw_comp = hw_grp.to_component
           hw_comp.definition.name = conn_type
           hw_comp.name = conn_type
@@ -1087,6 +1057,9 @@ module SmartCabinetMaker
 
         # Joinery Connectors (CNC Ready) - SmartWop style
         conn_type_val = b['connector_type'] || "None"
+        part_data[:b] = b # Pass build config to draw_connectors
+        part_data[:is_gola]    = is_gola          # Pass gola flag (from front data)
+        part_data[:gola_depth] = is_gola ? gd_val : 0 # gd_val here = gola channel depth (f['gola_depth'])
         if conn_type_val != "None" && (side_type || is_horiz)
           self.draw_connectors(
             p_grp.entities, part_data,
@@ -1936,7 +1909,7 @@ module SmartCabinetMaker
       style: UI::HtmlDialog::STYLE_DIALOG 
     }
     @dialog = UI::HtmlDialog.new(o)
-    @dialog.set_file(File.join(File.dirname(__FILE__), 'ui_v13', 'index.html'))
+    @dialog.set_html(File.read(File.join(File.dirname(__FILE__), 'ui_v13', 'index.html')))
     @dialog.add_action_callback("buildCabinet") { |c, j| self.build_cabinet(JSON.parse(j)) }
     @dialog.add_action_callback("browseFile") { |c, id|
       path = UI.openpanel("Επιλογή Υλικού (Texture)", "", "*.jpg;*.png;*.bmp;*.tif;*.png")
