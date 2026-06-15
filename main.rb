@@ -518,14 +518,13 @@ module SmartCabinetMaker
     m_hw = apply_mat(Sketchup.active_model, "Hardware_#{conn_type}", "", [180, 180, 185])
 
     # -----------------------------------------------------------------------
-    # SmartWop placement rules:
-    #   * Connectors are distributed along the DEPTH (Y axis) of the joint edge
-    #   * edge_off = distance from front/back face of cabinet to nearest hole
-    #   * On HORIZONTAL panels: one set of holes near each END (left & right)
-    #     where the panel meets the side panels — X position = t/2 from end
-    #     (centered over the side panel thickness)
-    #   * On SIDE panels: matching Y positions, drilled horizontally (X axis)
-    #     at join_z = center-of-thickness of each horizontal panel
+    # SmartWop Placement Rules:
+    # 1. SideOverTop: Joint is vertical. Drills are HORIZONTAL (along X axis).
+    #    - Horizontal panels get end-grain holes drilled at X = 0 (left end) and X = pw (right end)
+    #    - Side panels get face holes at the Z height of the horizontal panels
+    # 2. TopOverSide: Joint is horizontal. Drills are VERTICAL (along Z axis).
+    #    - Horizontal panels get face holes at X = t/2 and X = pw - t/2
+    #    - Side panels get end-grain holes at Z = 0 (bottom end) and Z = ph (top end)
     # -----------------------------------------------------------------------
 
     # --- Common Y-distribution along DEPTH (same for both panel types) ---
@@ -542,104 +541,133 @@ module SmartCabinetMaker
       (0...qty).each { |i| positions_y << edge_off + i * step }
     end
 
-    # -----------------------------------------------------------------------
-    # HORIZONTAL PANELS (top / bottom)
-    # Pilot holes drilled through face (Z axis) near each END of the panel.
-    # X position: t/2 in from each end = centered over the side panel.
-    # Y positions: distributed along depth (edge_off from front & back).
-    # -----------------------------------------------------------------------
-    if is_horiz
-      is_bottom = nm.downcase.include?("bottom")
-      is_top    = nm.downcase.include?("top") && !nm.downcase.include?("rail")
-
-      # X of hole centers: t/2 in from left end, t/2 in from right end
-      x_left  = x + t / 2.0
-      x_right = x + pw - t / 2.0
-
-      [x_left, x_right].each do |cx|
-        positions_y.each do |cy_off|
-          cy = y + cy_off
-          local_x = (cx - x).to_mm
-          local_y = cy_off.to_mm
-
-          if is_bottom
-            # Drill from TOP face downward (screw enters from below cabinet floor)
-            hole(p_ents, [cx, cy, z + ph], [0, 0, -1], r_pilot, d_pilot,
-                 "C_BORE_#{(r_pilot * 2).to_mm.round}")
-            part_data[:holes] << [local_x, local_y, r_pilot, d_pilot]
-          elsif is_top
-            # Drill from BOTTOM face upward (screw enters from above cabinet ceiling)
-            hole(p_ents, [cx, cy, z], [0, 0, 1], r_pilot, d_pilot,
-                 "C_BORE_#{(r_pilot * 2).to_mm.round}")
-            part_data[:holes] << [local_x, local_y, r_pilot, d_pilot]
+    if construction == "SideOverTop"
+      # =====================================================================
+      # SIDE OVER TOP (Vertical Joint, Horizontal Drills along X)
+      # =====================================================================
+      if is_horiz
+        # Drill horizontally into the left and right end faces of the bottom/top panel
+        # Left end (local X = 0), Right end (local X = pw)
+        [[x, [1, 0, 0], 0.0], [x + pw, [-1, 0, 0], pw.to_mm]].each do |cx, dir, local_x_dxf|
+          positions_y.each do |cy_off|
+            cy = y + cy_off
+            # Center of thickness (Z)
+            cz = z + ph / 2.0
+            
+            # Drill receiving hole into the end face
+            hole(p_ents, [cx, cy, cz], dir, r_recv, d_recv, "C_BORE_#{(r_recv * 2).to_mm.round}")
+            part_data[:holes] << [local_x_dxf, cy_off.to_mm, r_recv, d_recv]
           end
         end
       end
-    end
 
-    # -----------------------------------------------------------------------
-    # SIDE PANELS (left / right)
-    # Receiving holes drilled from the INNER face (X axis) at the Z height
-    # of each horizontal panel's midplane.
-    # Y positions must match the horizontal panel's Y positions exactly.
-    # -----------------------------------------------------------------------
-    if side_type
-      is_left   = (side_type == :l)
-      inner_x   = is_left ? (x + pw) : x
-      drill_dir = is_left ? [1, 0, 0] : [-1, 0, 0]
-
-      # join_z = Z coordinate of horizontal panel midplane
-      # SideOverTop: side spans z=pl..pl+h, horizontals sit inside
-      #   bottom midplane = z + t/2,  top midplane = z + ph - t/2
-      # TopOverSide: side spans z=pl+t..pl+h-t, horizontals overlap
-      #   bottom midplane = z - t/2,  top midplane = z + ph + t/2
-      if construction == "SideOverTop"
+      if side_type
+        is_left = (side_type == :l)
+        # For SideOverTop, side panels go all the way down/up.
+        # Bottom panel center Z = z + t/2, Top panel center Z = z + ph - t/2
         bottom_join_z = z + t / 2.0
         top_join_z    = z + ph - t / 2.0
-      else
-        bottom_join_z = z - t / 2.0
-        top_join_z    = z + ph + t / 2.0
-      end
+        
+        [bottom_join_z, top_join_z].each do |join_z|
+          # Skip top connectors if Rails is selected and we are at the top joint
+          curr_pos_y = positions_y
+          if join_z == top_join_z && tt == "Rails"
+            if is_gola
+              curr_pos_y = [pd_val - rw / 2.0]
+            else
+              curr_pos_y = [rw / 2.0, pd_val - rw / 2.0]
+            end
+          end
 
-      [bottom_join_z, top_join_z].each do |join_z|
-        curr_pos_y = positions_y
-
-        # For Rails top: override Y positions to match rail centers
-        if join_z == top_join_z && tt == "Rails"
-          if is_gola
-            # Gola: only back rail (gola front rail uses its own fixing system)
-            curr_pos_y = [pd_val - rw / 2.0]
-          else
-            # Standard rails: front rail center (rw/2) and back rail center
-            curr_pos_y = [rw / 2.0, pd_val - rw / 2.0]
+          curr_pos_y.each do |cy_off|
+            cy = y + cy_off
+            
+            # Drill pilot hole through the side panel face
+            # Left side: drill from outer face (x) to inner face (x+pw) => dir = [1,0,0]
+            # Right side: drill from outer face (x+pw) to inner face (x) => dir = [-1,0,0]
+            drill_x = is_left ? x : (x + pw)
+            dir = is_left ? [1, 0, 0] : [-1, 0, 0]
+            
+            hole(p_ents, [drill_x, cy, join_z], dir, r_pilot, t, "C_BORE_#{(r_pilot * 2).to_mm.round}")
+            
+            # Render hardware on the outer face
+            hw_grp = p_ents.add_group
+            hw_grp.name = "Connector_#{conn_type}"
+            hw_grp.material = m_hw
+            hole(hw_grp.entities, [drill_x, cy, join_z], dir, r_head, d_head, "C_BORE_#{(r_head * 2).to_mm.round}")
+            hw_comp = hw_grp.to_component
+            hw_comp.definition.name = conn_type
+            hw_comp.name = conn_type
+            ["opencutlist", "OpenCutList"].each do |dict|
+              hw_comp.material.set_attribute(dict, "type", "hardware") rescue nil
+            end
+            
+            # DXF record for the side panel face hole
+            local_y_dxf = cy_off.to_mm
+            local_z_dxf = (join_z - z).to_mm
+            part_data[:holes] << [local_z_dxf, local_y_dxf, r_pilot, t]
           end
         end
+      end
 
-        curr_pos_y.each do |cy_off|
-          cy = y + cy_off
+    else
+      # =====================================================================
+      # TOP OVER SIDE (Horizontal Joint, Vertical Drills along Z)
+      # =====================================================================
+      if is_horiz
+        is_bottom = nm.downcase.include?("bottom")
+        is_top    = nm.downcase.include?("top") && !nm.downcase.include?("rail")
 
-          # Receiving hole in side panel
-          hole(p_ents, [inner_x, cy, join_z], drill_dir, r_recv, d_recv,
-               "C_BORE_#{(r_recv * 2).to_mm.round}")
+        # X of hole centers (aligned with the center of the left and right side panels)
+        x_left  = x + t / 2.0
+        x_right = x + pw - t / 2.0
 
-          # 3D hardware display (connector head visible on outer face)
-          hw_grp = p_ents.add_group
-          hw_grp.name = "Connector_#{conn_type}"
-          hw_grp.material = m_hw
-          outer_x = is_left ? x : (x + pw)
-          hw_dir = is_left ? [-1, 0, 0] : [1, 0, 0]
-          hole(hw_grp.entities, [outer_x, cy, join_z], hw_dir, r_head, d_head, "C_BORE_#{(r_head*2).to_mm.round}")
-          hw_comp = hw_grp.to_component
-          hw_comp.definition.name = conn_type
-          hw_comp.name = conn_type
-          ["opencutlist", "OpenCutList"].each do |dict|
-            hw_comp.material.set_attribute(dict, "type", "hardware") rescue nil
+        [x_left, x_right].each do |cx|
+          positions_y.each do |cy_off|
+            cy = y + cy_off
+            local_x = (cx - x).to_mm
+            local_y = cy_off.to_mm
+
+            if is_bottom
+              # Bottom panel: drill pilot holes vertically upward from bottom face
+              hole(p_ents, [cx, cy, z], [0, 0, 1], r_pilot, ph, "C_BORE_#{(r_pilot * 2).to_mm.round}")
+              part_data[:holes] << [local_x, local_y, r_pilot, ph]
+            elsif is_top
+              # Top panel: drill pilot holes vertically downward from top face
+              hole(p_ents, [cx, cy, z + ph], [0, 0, -1], r_pilot, ph, "C_BORE_#{(r_pilot * 2).to_mm.round}")
+              part_data[:holes] << [local_x, local_y, r_pilot, ph]
+            end
+          end
+        end
+      end
+
+      if side_type
+        # For TopOverSide, side panels sit between Top & Bottom.
+        # Drills go into the bottom end face (Z = z) and top end face (Z = z + ph)
+        [[z, [0, 0, 1], 0.0], [z + ph, [0, 0, -1], ph.to_mm]].each do |cz, dir, local_z_dxf|
+          # Skip top joint rails check
+          curr_pos_y = positions_y
+          if cz == (z + ph) && tt == "Rails"
+            if is_gola
+              curr_pos_y = [pd_val - rw / 2.0]
+            else
+              curr_pos_y = [rw / 2.0, pd_val - rw / 2.0]
+            end
           end
 
-          # DXF εγγραφή για το side
-          local_y_dxf = cy_off.to_mm
-          local_z_dxf = (join_z - z).to_mm
-          part_data[:holes] << [local_z_dxf, local_y_dxf, r_recv, d_recv]
+          curr_pos_y.each do |cy_off|
+            cy = y + cy_off
+            
+            # Center of side panel thickness (X)
+            cx = x + pw / 2.0
+            
+            # Drill receiving hole vertically into the end face of the side panel
+            hole(p_ents, [cx, cy, cz], dir, r_recv, d_recv, "C_BORE_#{(r_recv * 2).to_mm.round}")
+            
+            # DXF record
+            local_y_dxf = cy_off.to_mm
+            part_data[:holes] << [local_z_dxf, local_y_dxf, r_recv, d_recv]
+          end
         end
       end
     end
