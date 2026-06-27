@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Smart Cabinet Maker Pro v13.4 - Absolute Total</title>
+  <title>Smart Cabinet Maker Pro v13.5 - Absolute Total</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -23,15 +23,15 @@
         --color-fronts: #dc2626;
         --color-materials: #4f46e5;
     }
-    body { background-color: var(--bg-dark); color: var(--text-body); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
-    .layout { display: flex; flex: 1; overflow: hidden; width: 100%; }
-    .sidebar { width: var(--sidebar-width); background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-    .sidebar h2 { color: var(--text-title); font-size: 14px; padding: 20px 15px; margin: 0; border-bottom: 1px solid var(--border-color); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
-    .tablink { background-color: transparent; color: var(--text-body); border: none; outline: none; cursor: pointer; padding: 14px 15px; text-align: left; font-size: 13px; font-weight: 600; border-left: 4px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+    body { background-color: var(--bg-dark); color: var(--text-body); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .layout { display: flex; flex-direction: column; flex: 1; overflow: hidden; width: 100%; }
+    .sidebar { width: 100%; background-color: var(--sidebar-bg); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 0 10px; }
+    .sidebar h2 { display: none; }
+    .tablink { background-color: transparent; color: var(--text-body); border: none; outline: none; cursor: pointer; padding: 12px 15px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 4px solid transparent; border-left: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; min-width: 100px; }
     .tablink svg { width: 18px; height: 18px; stroke-width: 2.5; }
     .tablink:hover { background-color: rgba(0,0,0,0.05); }
-    .tablink.active { background-color: rgba(0,120,212,0.1); color: var(--accent); border-left: 4px solid var(--accent); }
-    .main-content { flex: 1; overflow-y: auto; padding: 20px; background: #ffffff; box-shadow: inset 5px 0 10px rgba(0,0,0,0.03); }
+    .tablink.active { background-color: rgba(0,120,212,0.1); color: var(--accent); border-bottom: 4px solid var(--accent); border-left: none; }
+    .main-content { flex: 1; overflow-y: auto; padding: 20px; background: #ffffff; box-shadow: inset 0 5px 10px rgba(0,0,0,0.03); }
     .tabcontent { display: none; max-width: 100%; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     h3 { margin: 0 0 20px 0; color: var(--text-title); font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 12px; }
@@ -70,16 +70,12 @@
       <button class="tablink" onclick="openTab(event, 'interior')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-interior)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>Εσωτερικό</button>
       <button class="tablink" onclick="openTab(event, 'fronts')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-fronts)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>Προσόψεις</button>
       <button class="tablink" onclick="openTab(event, 'materials')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-materials)"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>Υλικά</button>
-      <div style="margin-top:auto; padding:12px; border-top:1px solid var(--border-color);">
-        <div style="font-size:10px; font-weight:900; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:1px;">Tools & Vision</div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">
-          <button onclick="callRuby('ghostMode')" style="padding:8px 4px; background:#f0f4ff; border:1.5px solid #c7d2fe; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#4f46e5;" title="Ghost Mode - Ημιδιαφάνεια">👻 Ghost</button>
-          <button onclick="callRuby('hideDoors')" style="padding:8px 4px; background:#fef3c7; border:1.5px solid #fcd34d; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#92400e;" title="Hide/Show Πόρτες">🚪 Doors</button>
-          <button onclick="callRuby('smartLens')" style="padding:8px 4px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#065f46;" title="Smart Lens Tool">🔍 Lens</button>
-          <button onclick="callRuby('resizeTool')" style="padding:8px 4px; background:#fdf4ff; border:1.5px solid #f0abfc; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#a21caf;" title="Εργαλείο Αλλαγής Διαστάσεων">📏 Resize</button>
-        </div>
-        <button class="btn-build" onclick="buildCabinet()" style="margin-bottom: 6px;">Build 3D</button>
-        <button class="btn-build" onclick="callRuby('exportDXF')" style="background: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">📐 Export DXF</button>
+      <div style="display:flex; align-items:center; gap:10px; margin-left:auto; padding:8px;">
+        <select id="preset_selector" onchange="loadPreset()" style="width: 140px;"><option value="">-- Πρότυπα --</option></select>
+        <button onclick="callRuby('ghostMode')" style="padding:8px; background:#f0f4ff; border:1.5px solid #c7d2fe; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; color:#4f46e5;" title="Ghost Mode - Ημιδιαφάνεια">👻</button>
+        <button onclick="callRuby('hideDoors')" style="padding:8px; background:#fef3c7; border:1.5px solid #fcd34d; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; color:#92400e;" title="Hide/Show Πόρτες">🚪</button>
+        <button onclick="callRuby('smartLens')" style="padding:8px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; color:#065f46;" title="Smart Lens Tool">🔍</button>
+        <button class="btn-build" onclick="buildCabinet()" style="width:auto; padding:8px 16px;">Build 3D</button>
       </div>
     </div>
     <div class="main-content">
@@ -98,12 +94,15 @@
           </div>
         </div>
         <div class="field"><div class="label-zone"><span class="label-main">Πάχος PVC (mm)</span></div><input type="number" id="pvc_th" value="1"></div>
+        <div class="section-header">Πάγκος & Τοποθέτηση</div>
+        <div class="field"><div class="label-zone"><span class="label-main">Πάχος Πάγκου (mm)</span></div><input type="number" id="worktop_th" value="40"></div>
+        <div class="field"><div class="label-zone"><span class="label-main">Κενό Πλάτης (Gap)</span><span class="label-help">Απόσταση βάσης-κρεμαστού</span></div><input type="number" id="gap_backsplash" value="600"></div>
         <div style="margin-top:40px; display:flex; gap:10px;"><input type="text" id="preset_name" placeholder="Όνομα..." style="flex:1"><button class="btn-secondary" onclick="savePreset()">Save Preset</button></div>
       </div>
       <div id="box" class="tabcontent">
         <h3>Σώμα Ερμαρίου</h3>
         <div class="field"><div class="label-zone"><span class="label-main">Τύπος Ερμαρίου</span></div><select id="cab_type" onchange="updateDefaults()"><option value="Base">Βάσης (760/560)</option><option value="Wall">Κρεμαστό (720/330)</option><option value="Wardrobe">Ντουλάπα (1600/580)</option></select></div>
-        <div class="property-grid"><div class="grid-item"><label>Πλάτος</label><input type="number" id="width" value="600"></div><div class="grid-item"><label>Ύψος</label><input type="number" id="height" value="760"></div><div class="grid-item"><label>Βάθος</label><input type="number" id="depth" value="560"></div><div class="grid-item"><label>Καπάκι</label><select id="top_type"><option value="Solid">Πάνελ</option><option value="Rails">Τραβέρσες</option></select></div></div>
+        <div class="property-grid"><div class="grid-item"><label>Πλάτος</label><input type="number" id="width" value="600"></div><div class="grid-item"><label>Ύψος</label><input type="number" id="height" value="760"></div><div class="grid-item"><label>Βάθος</label><input type="number" id="depth" value="560"></div><div class="grid-item"><label>Καπάκι</label><select id="top_type" onchange="updateTopDefaults()"><option value="Solid">Πάνελ</option><option value="Rails">Τραβέρσες</option></select></div></div>
         <div class="field"><div class="label-zone"><span class="label-main">Φάρδος Τραβέρσας</span></div><input type="number" id="rail_width" value="100"></div>
         <div class="section-header">Μπάζα (Plinth / Legs)</div>
         <div class="property-grid">
@@ -123,9 +122,9 @@
         <h3>Σύνδεση & Hardware</h3>
         <div class="field"><div class="label-zone"><span class="label-main">Τύπος Σύνδεσης</span></div><select id="conn_type"><option value="SideOverTop">Sides over Top</option><option value="TopOverSide">Top over Sides</option><option value="Miter">Miter (45°)</option></select></div>
         <div class="section-header">Connectors (CNC)</div>
-        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="connector_type"><option value="Screw_3.5">Βίδες</option><option value="Dowel">Καβίλιες</option><option value="Minifix">Minifix</option><option value="None">None</option></select></div><div class="grid-item"><label>Mode</label><select id="connector_mode"><option value="Manual">Manual</option><option value="Auto">Auto</option></select></div><div class="grid-item"><label>Qty/Step</label><input type="number" id="connector_val" value="3"></div><div class="grid-item"><label>Offset</label><input type="number" id="connector_offset" value="37"></div></div>
+        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="connector_type" onchange="updateConnectorDefaults()"><option value="Screw_3.5">Βίδες 3.5</option><option value="Dowel">Καβίλιες Ø8</option><option value="Minifix">Minifix Ø15</option><option value="Lamello_Clamex">Lamello Clamex</option><option value="Cabineo">Cabineo Ø8</option><option value="None">None</option></select></div><div class="grid-item"><label>Mode</label><select id="connector_mode"><option value="Manual">Manual</option><option value="Auto">Auto</option></select></div><div class="grid-item"><label>Qty/Step</label><input type="number" id="connector_val" value="3"></div><div class="grid-item"><label>Offset</label><input type="number" id="connector_offset" value="37"></div></div>
         <div class="section-header">Πλάτη & Γκινισιά</div>
-        <div class="property-grid"><div class="grid-item"><label>Τύπος Πλάτης</label><select id="back_type"><option value="Nailed">Καρφωτή</option><option value="Grooved">Γκινισιά</option><option value="Hybrid">Hybrid</option></select></div><div class="grid-item"><label>Inset Πλάτης</label><input type="number" id="back_inset" value="15"></div><div class="grid-item"><label>Βάθος Γκινισιάς</label><input type="number" id="groove_depth" value="8"></div></div>
+        <div class="property-grid"><div class="grid-item"><label>Τύπος Πλάτης</label><select id="back_type" onchange="updateBackDefaults()"><option value="Nailed">Καρφωτή</option><option value="Grooved">Γκινισιά</option><option value="Hybrid">Hybrid</option></select></div><div class="grid-item"><label>Inset Πλάτης</label><input type="number" id="back_inset" value="15"></div><div class="grid-item"><label>Βάθος Γκινισιάς</label><input type="number" id="groove_depth" value="8"></div></div>
       </div>
       <div id="interior" class="tabcontent">
         <h3>Εσωτερικός Χώρος</h3>
@@ -145,9 +144,9 @@
       </div>
       <div id="fronts" class="tabcontent">
         <h3>Προσόψεις & Μηχανισμοί</h3>
-        <div class="property-grid"><div class="grid-item"><label>Τύπος</label><select id="front_type"><option value="Doors">Πόρτες</option><option value="Drawers">Συρτάρια</option><option value="Gola">Gola Front</option></select></div><div class="grid-item"><label>Overlay</label><select id="overlay_type"><option value="Full">Full</option><option value="Half">Half</option><option value="Inset">Inset</option></select></div><div class="grid-item"><label>Αριθμός (Π/Σ)</label><input type="number" id="front_count" value="2"></div></div>
+        <div class="property-grid"><div class="grid-item"><label>Τύπος</label><select id="front_type" onchange="updateFrontDefaults()"><option value="Doors">Πόρτες</option><option value="Drawers">Συρτάρια</option><option value="Gola">Gola Front</option></select></div><div class="grid-item"><label>Overlay</label><select id="overlay_type"><option value="Full">Full</option><option value="Half">Half</option><option value="Inset">Inset</option></select></div><div class="grid-item"><label>Αριθμός (Π/Σ)</label><input type="number" id="front_count" value="2"></div></div>
         <div class="section-header">Μεντεσέδες</div>
-        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="hinge_type"><option value="Blum_ClipTop">Blum Clip Top</option><option value="Salice_110">Salice 110</option><option value="None">None</option></select></div><div class="grid-item"><label>Offset (mm)</label><select id="hinge_offset"><option value="100">100</option><option value="120" selected>120</option><option value="150">150</option><option value="180">180</option></select></div></div>
+        <div class="property-grid"><div class="grid-item"><label>Hardware</label><select id="hinge_type" onchange="updateHingeDefaults()"><option value="Blum_ClipTop">Blum Clip Top 110°</option><option value="Blum_INSERTA">Blum INSERTA (press-in)</option><option value="Salice_110">Salice 110°</option><option value="Hettich_Sensys">Hettich Sensys M</option><option value="None">None</option></select></div><div class="grid-item"><label>Offset (mm)</label><input type="number" id="hinge_offset" value="100"></div></div>
         <div class="section-header">Πόμολα & Gola Profile</div>
         <div class="field"><div class="label-zone"><span class="label-main">Είδος Λαβής</span></div><select id="handle_type" onchange="toggleGolaSettings()"><option value="Bar">Bar (2 τρύπες)</option><option value="Knob">Knob (1 τρύπα)</option><option value="Gola">Gola Profile</option><option value="None">None</option></select></div>
         <div id="handle_params_section"><div class="property-grid"><div class="grid-item"><label>Διάκεντρο</label><input type="number" id="handle_cc" value="128"></div><div class="grid-item"><label>Offset X</label><input type="number" id="handle_offset_x" value="40"></div><div class="grid-item"><label>Offset Z</label><input type="number" id="handle_offset_z" value="40"></div></div></div>
@@ -183,8 +182,11 @@
         <div class="section-header">Πρόσοψη 2</div>
         <div class="property-grid"><div class="grid-item"><label>Όνομα</label><input type="text" id="mat_front2_name" value="Anthra"></div><div class="grid-item"><label>PVC</label><input type="text" id="mat_front2_pvc" value="Anthra-PVC"></div></div>
         <div class="field"><div style="display:flex; flex:1; border:1px solid #ccc; border-radius:4px; overflow:hidden;"><input type="text" id="mat_front2_tex" style="flex:1; border:none; padding:6px;"><button class="browse-btn" onclick="browseFile('mat_front2_tex')">📁</button></div></div>
-        <div class="section-header">Λοιπά</div>
+        <div class="section-header">Λοιπά & Hardware</div>
         <div class="property-grid"><div class="grid-item"><label>Πλάτη</label><input type="text" id="mat_back_name" value="HDF White"></div><div class="grid-item"><label>Μπάζα</label><input type="text" id="mat_plinth_name" value="Aluminum"></div></div>
+        <div class="section-header">Πάγκος (Worktop)</div>
+        <div class="property-grid"><div class="grid-item"><label>Όνομα Υλικού</label><input type="text" id="mat_worktop_name" value="Oak Worktop"></div></div>
+        <div class="field"><div style="display:flex; flex:1; border:1px solid #ccc; border-radius:4px; overflow:hidden;"><input type="text" id="mat_worktop_tex" placeholder="Texture file..." style="flex:1; border:none; padding:6px;"><button class="browse-btn" onclick="browseFile('mat_worktop_tex')">📁</button></div></div>
       </div>
     </div>
   </div>
@@ -222,22 +224,188 @@
             document.getElementById("gola_radius").value = p.radius;
         }
     }
+
+    var CONNECTOR_OFFSETS = {
+        "Screw_3.5":     { offset: 37, val: 3 },
+        "Dowel":         { offset: 37, val: 3 },
+        "Minifix":       { offset: 37, val: 2 },
+        "Lamello_Clamex":{ offset: 50, val: 2 },
+        "Cabineo":       { offset: 37, val: 2 },
+        "None":          { offset: 37, val: 0 }
+    };
+    function updateConnectorDefaults() {
+        var ct = document.getElementById('connector_type').value;
+        var info = CONNECTOR_OFFSETS[ct];
+        if (info) {
+            document.getElementById('connector_offset').value = info.offset;
+            document.getElementById('connector_val').value = info.val;
+        }
+        var showFields = (ct !== "None");
+        var modeEl = document.getElementById('connector_mode');
+        if (modeEl && modeEl.parentElement && modeEl.parentElement.parentElement) {
+            modeEl.parentElement.parentElement.style.opacity = showFields ? "1" : "0.4";
+        }
+    }
+
+    var HINGE_OFFSETS = {
+        "Blum_ClipTop":   { offset: 100 },
+        "Blum_INSERTA":   { offset: 100 },
+        "Salice_110":     { offset: 100 },
+        "Hettich_Sensys": { offset: 100 },
+        "None":           { offset: 100 }
+    };
+    function updateHingeDefaults() {
+        var ht = document.getElementById('hinge_type').value;
+        var info = HINGE_OFFSETS[ht];
+        if (info) {
+            document.getElementById('hinge_offset').value = info.offset;
+        }
+    }
+
+    var BACK_DEFAULTS = {
+        "Nailed":  { inset: 0,  groove: 8 },
+        "Grooved": { inset: 15, groove: 8 },
+        "Hybrid":  { inset: 15, groove: 8 }
+    };
+    function updateBackDefaults() {
+        var bt = document.getElementById('back_type').value;
+        var info = BACK_DEFAULTS[bt];
+        if (info) {
+            document.getElementById('back_inset').value = info.inset;
+            document.getElementById('groove_depth').value = info.groove;
+        }
+    }
+
+    function updateTopDefaults() {
+        var tt = document.getElementById('top_type').value;
+        var railField = document.getElementById('rail_width');
+        if (railField && railField.closest('.field')) {
+            railField.closest('.field').style.display = (tt === "Rails") ? "flex" : "none";
+        }
+    }
+
     function openTab(evt, tabName) {
         var i, tc, tl; tc = document.getElementsByClassName("tabcontent"); for (i=0; i<tc.length; i++) tc[i].style.display = "none";
         tl = document.getElementsByClassName("tablink"); for (i=0; i<tl.length; i++) tl[i].className = tl[i].className.replace(" active", "");
         document.getElementById(tabName).style.display = "block"; if (evt) evt.currentTarget.className += " active";
     }
-    function updateDefaults() { var t = document.getElementById('cab_type').value; if (t === "Base") { document.getElementById('height').value = 760; document.getElementById('depth').value = 560; } }
-    function toggleGolaSettings() { var v = document.getElementById('handle_type').value; document.getElementById('gola_params_section').style.display = (v === 'Gola') ? 'block' : 'none'; document.getElementById('handle_params_section').style.display = (v === 'Gola' || v === 'None') ? 'none' : 'block'; }
+    
+    function updateDefaults() { 
+        var t = document.getElementById('cab_type').value; 
+        var topTypeEl = document.getElementById('top_type');
+        var handleTypeEl = document.getElementById('handle_type');
+        var baseTypeEl = document.getElementById('base_type');
+
+        if (t === "Base") { 
+            document.getElementById('height').value = 760; 
+            document.getElementById('depth').value = 560; 
+            topTypeEl.disabled = false;
+            handleTypeEl.disabled = false;
+        } else if (t === "Wall") {
+            document.getElementById('height').value = 720; 
+            document.getElementById('depth').value = 330;
+            topTypeEl.value = "Solid";
+            topTypeEl.disabled = true; // Rails not allowed for Wall
+            baseTypeEl.value = "Box";
+            if(handleTypeEl.value === "Gola") handleTypeEl.value = "Bar";
+            toggleGolaSettings();
+        } else if (t === "Wardrobe") {
+            document.getElementById('height').value = 2200; 
+            document.getElementById('depth').value = 580;
+            topTypeEl.value = "Solid";
+            topTypeEl.disabled = true; // Rails not allowed for Wardrobe
+            if(handleTypeEl.value === "Gola") handleTypeEl.value = "Bar";
+            toggleGolaSettings();
+        }
+    }
+
+    function updateFrontDefaults() {
+        var ft = document.getElementById('front_type').value;
+        if (ft === "Drawers") {
+            document.getElementById('shelves').value = 0;
+            document.getElementById('front_count').value = 3;
+            document.getElementById('handle_type').value = "Bar";
+            toggleGolaSettings();
+        } else if (ft === "Gola") {
+            document.getElementById('handle_type').value = "Gola";
+            toggleGolaSettings();
+            if (document.getElementById('gola_preset').value === "custom") {
+                document.getElementById('gola_preset').value = "volpato_l";
+                applyGolaPreset();
+            }
+        } else {
+            if (parseInt(document.getElementById('shelves').value, 10) === 0) {
+                document.getElementById('shelves').value = 1;
+            }
+        }
+    }
+
+    function updateDefaults() {
+        var t = document.getElementById('cab_type').value;
+        if (t === "Base") {
+            document.getElementById('height').value = 760;
+            document.getElementById('depth').value = 560;
+        } else if (t === "Wall") {
+            document.getElementById('height').value = 720;
+            document.getElementById('depth').value = 330;
+        } else if (t === "Wardrobe") {
+            document.getElementById('height').value = 1600;
+            document.getElementById('depth').value = 580;
+        }
+    }
+
+    function normalizePresetData(data) {
+        if (!data) return data;
+        var d = JSON.parse(JSON.stringify(data));
+        if (d.joinery) {
+            d.box = d.box || {};
+            if (d.joinery.connectorType !== undefined) d.box.connector_type = d.joinery.connectorType;
+            if (d.joinery.connectorMode !== undefined) d.box.connector_mode = d.joinery.connectorMode;
+            if (d.joinery.connectorVal !== undefined) d.box.connector_val = d.joinery.connectorVal;
+            if (d.joinery.connectorOffset !== undefined) d.box.connector_offset = d.joinery.connectorOffset;
+        }
+        if (d.interior && d.interior.verticalDividers !== undefined && d.interior.v_dividers === undefined) {
+            d.interior.v_dividers = d.interior.verticalDividers;
+        }
+        if (d.materials) {
+            if (d.materials.carcassName !== undefined && d.materials.mat_carcass_name === undefined) d.materials.mat_carcass_name = d.materials.carcassName;
+            if (d.materials.carcassCode !== undefined && d.materials.mat_carcass_pvc === undefined) d.materials.mat_carcass_pvc = d.materials.carcassCode;
+            if (d.materials.frontName !== undefined && d.materials.mat_front1_name === undefined) d.materials.mat_front1_name = d.materials.frontName;
+        }
+        return d;
+    }
+
+    function applyAllDropdownDefaults() {
+        updateDefaults();
+        updateConnectorDefaults();
+        updateHingeDefaults();
+        updateBackDefaults();
+        updateTopDefaults();
+        updateFrontDefaults();
+        toggleGolaSettings();
+    }
+
+    function openTab(evt, tabName) {
+        var i, tc, tl; tc = document.getElementsByClassName("tabcontent"); for (i=0; i<tc.length; i++) tc[i].style.display = "none";
+        tl = document.getElementsByClassName("tablink"); for (i=0; i<tl.length; i++) tl[i].className = tl[i].className.replace(" active", "");
+        document.getElementById(tabName).style.display = "block"; if (evt) evt.currentTarget.className += " active";
+    }
+
+    function toggleGolaSettings() {
+        var v = document.getElementById('handle_type').value;
+        document.getElementById('gola_params_section').style.display = (v === 'Gola') ? 'block' : 'none';
+        document.getElementById('handle_params_section').style.display = (v === 'Gola' || v === 'None') ? 'none' : 'block';
+    }
+
     function browseFile(id) { callRuby('browseFile', id); }
     function setFilePath(id, path) { document.getElementById(id).value = path; }
     function getVal(id) { return document.getElementById(id).value; }
     function collectData() { return { 
-        global: { materialThickness: parseFloat(document.getElementById('mat_th').value), backThickness: parseFloat(document.getElementById('back_th').value), gap: parseFloat(document.getElementById('gap').value), base_type: getVal('base_type'), plinthHeight: parseFloat(document.getElementById('plinth').value), pvcThickness: parseFloat(document.getElementById('pvc_th').value) },
+        global: { materialThickness: parseFloat(document.getElementById('mat_th').value), backThickness: parseFloat(document.getElementById('back_th').value), gap: parseFloat(document.getElementById('gap').value), base_type: getVal('base_type'), plinthHeight: parseFloat(document.getElementById('plinth').value), pvcThickness: parseFloat(document.getElementById('pvc_th').value), worktopThickness: parseFloat(document.getElementById('worktop_th').value), gapBacksplash: parseFloat(document.getElementById('gap_backsplash').value) },
         box: { cab_type: document.getElementById('cab_type').value, width: parseFloat(document.getElementById('width').value), height: parseFloat(document.getElementById('height').value), depth: parseFloat(document.getElementById('depth').value), backType: document.getElementById('back_type').value, topType: document.getElementById('top_type').value, railWidth: parseFloat(document.getElementById('rail_width').value), connType: document.getElementById('conn_type').value, backInset: parseFloat(document.getElementById('back_inset').value), grooveDepth: parseFloat(document.getElementById('groove_depth').value), plinthInsetF: parseFloat(document.getElementById('plinth_inset_f').value), plinthInsetB: parseFloat(document.getElementById('plinth_inset_b').value), connector_type: document.getElementById('connector_type').value, connector_mode: document.getElementById('connector_mode').value, connector_val: parseFloat(document.getElementById('connector_val').value), connector_offset: parseFloat(document.getElementById('connector_offset').value) },
         front: { front_type: document.getElementById('front_type').value, overlay_type: document.getElementById('overlay_type').value, count: parseInt(document.getElementById('front_count').value), hingeType: document.getElementById('hinge_type').value, hingeOffset: parseFloat(document.getElementById('hinge_offset').value), handle_type: document.getElementById('handle_type').value, handle_cc: parseFloat(document.getElementById('handle_cc').value), handle_offset_x: parseFloat(document.getElementById('handle_offset_x').value), handle_offset_z: parseFloat(document.getElementById('handle_offset_z').value), gola_size: parseFloat(document.getElementById('gola_size').value), gola_depth: parseFloat(document.getElementById('gola_depth').value), gola_radius: parseFloat(document.getElementById('gola_radius').value), gola_type: document.getElementById('gola_type').value },
         interior: { v_dividers: parseInt(document.getElementById('v_dividers').value), shelves: parseInt(document.getElementById('shelves').value), line_boring: document.getElementById('line_boring').checked, lb_offset_f: parseFloat(document.getElementById('lb_offset_f').value), lb_offset_b: parseFloat(document.getElementById('lb_offset_b').value), lb_step: parseFloat(document.getElementById('lb_step').value), lb_qty: document.getElementById('lb_qty').value, shelf_inset: parseFloat(document.getElementById('shelf_inset').value), zone_split: document.getElementById('zone_split').value },
-        materials: { mat_carcass_name: document.getElementById('mat_carcass_name').value, mat_carcass_pvc: document.getElementById('mat_carcass_pvc').value, mat_carcass_tex: document.getElementById('mat_carcass_tex').value, mat_front1_name: document.getElementById('mat_front1_name').value, mat_front1_pvc: document.getElementById('mat_front1_pvc').value, mat_front1_tex: document.getElementById('mat_front1_tex').value, mat_front2_name: document.getElementById('mat_front2_name').value, mat_front2_pvc: document.getElementById('mat_front2_pvc').value, mat_front2_tex: document.getElementById('mat_front2_tex').value, mat_back_name: document.getElementById('mat_back_name').value, mat_plinth_name: document.getElementById('mat_plinth_name').value }
+        materials: { mat_carcass_name: document.getElementById('mat_carcass_name').value, mat_carcass_pvc: document.getElementById('mat_carcass_pvc').value, mat_carcass_tex: document.getElementById('mat_carcass_tex').value, mat_front1_name: document.getElementById('mat_front1_name').value, mat_front1_pvc: document.getElementById('mat_front1_pvc').value, mat_front1_tex: document.getElementById('mat_front1_tex').value, mat_front2_name: document.getElementById('mat_front2_name').value, mat_front2_pvc: document.getElementById('mat_front2_pvc').value, mat_front2_tex: document.getElementById('mat_front2_tex').value, mat_back_name: document.getElementById('mat_back_name').value, mat_plinth_name: document.getElementById('mat_plinth_name').value, mat_worktop_name: document.getElementById('mat_worktop_name').value, mat_worktop_tex: document.getElementById('mat_worktop_tex').value }
     }; }
     function buildCabinet() { callRuby('buildCabinet', JSON.stringify(collectData())); }
     function savePreset() { callRuby('savePreset', document.getElementById('preset_name').value, JSON.stringify(collectData())); }
@@ -258,7 +426,7 @@
 
     function loadPresetData(data) {
         if (!data) return;
-        
+        data = normalizePresetData(data);
         // Globals
         if (data.global) {
             if (data.global.materialThickness !== undefined) document.getElementById('mat_th').value = data.global.materialThickness;
@@ -267,6 +435,8 @@
             if (data.global.base_type !== undefined) document.getElementById('base_type').value = data.global.base_type;
             if (data.global.plinthHeight !== undefined) document.getElementById('plinth').value = data.global.plinthHeight;
             if (data.global.pvcThickness !== undefined) document.getElementById('pvc_th').value = data.global.pvcThickness;
+            if (data.global.worktopThickness !== undefined) document.getElementById('worktop_th').value = data.global.worktopThickness;
+            if (data.global.gapBacksplash !== undefined) document.getElementById('gap_backsplash').value = data.global.gapBacksplash;
         }
         
         // Box
@@ -341,10 +511,18 @@
             if (data.materials.mat_front2_tex !== undefined) document.getElementById('mat_front2_tex').value = data.materials.mat_front2_tex;
             if (data.materials.mat_back_name !== undefined) document.getElementById('mat_back_name').value = data.materials.mat_back_name;
             if (data.materials.mat_plinth_name !== undefined) document.getElementById('mat_plinth_name').value = data.materials.mat_plinth_name;
+            if (data.materials.mat_worktop_name !== undefined) document.getElementById('mat_worktop_name').value = data.materials.mat_worktop_name;
+            if (data.materials.mat_worktop_tex !== undefined) document.getElementById('mat_worktop_tex').value = data.materials.mat_worktop_tex;
         }
+
+        toggleGolaSettings();
+        updateTopDefaults();
     }
 
-    window.onload = function() { callRuby('fetchPresets'); };
+    window.onload = function() {
+        applyAllDropdownDefaults();
+        callRuby('fetchPresets');
+    };
   </script>
 </body>
 </html>

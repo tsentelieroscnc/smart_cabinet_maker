@@ -815,6 +815,9 @@ module SmartCabinetMaker
       m_f2 = apply_mat(model, "Front2_#{data['materials']['mat_front2_name']}", data['materials']['mat_front2_tex'], [80, 80, 85])
       m_back = apply_mat(model, "Back_#{data['materials']['mat_back_name']}", "")
       m_plinth = apply_mat(model, "Plinth_#{data['materials']['mat_plinth_name']}", "")
+      w_mat_name = data['materials']['mat_worktop_name'] || "Worktop"
+      w_mat_tex = data['materials']['mat_worktop_tex'] || ""
+      m_worktop = apply_mat(model, "Worktop_#{w_mat_name}", w_mat_tex)
 
       # Initialize Transparency Materials
       mats = model.materials
@@ -823,6 +826,7 @@ module SmartCabinetMaker
       ss = mats["SmartSolid"] || mats.add("SmartSolid")
       ss.alpha = 1.0
 
+      is_new_cab = false
       if target_grp && target_grp.valid?
         target_grp.entities.clear!
         main_cab = target_grp
@@ -833,6 +837,7 @@ module SmartCabinetMaker
           main_cab = sel[0]
         else
           main_cab = model.active_entities.add_group
+          is_new_cab = true
         end
       end
 
@@ -846,6 +851,42 @@ module SmartCabinetMaker
       t, bp, pl, gp = g['materialThickness'].to_f.mm, g['backThickness'].to_f.mm, g['plinthHeight'].to_f.mm, g['gap'].to_f.mm
       bt, tt, rw, ct = b['backType'], b['topType'], b['railWidth'].to_f.mm, b['connType']
       bi, gd = b['backInset'].to_f.mm, b['grooveDepth'].to_f.mm
+      
+      w_th = g['worktopThickness'] ? g['worktopThickness'].to_f.mm : 40.mm
+      w_gap = g['gapBacksplash'] ? g['gapBacksplash'].to_f.mm : 600.mm
+
+      # Enforce construction rules for Wall / Wardrobe
+      if b['cab_type'] == "Wall" || b['cab_type'] == "Wardrobe"
+        tt = "Solid"
+        f['handle_type'] = "Bar" if f['handle_type'] == "Gola"
+      end
+
+      # Positioning logic for new cabinets
+      insert_x = 0.to_mm
+      insert_z = 0.to_mm
+      
+      if b['cab_type'] == "Base"
+        @@last_base_plinth = pl
+        @@last_base_height = h
+        @@last_worktop_th = w_th
+      elsif b['cab_type'] == "Wall"
+        @@last_base_plinth ||= 100.mm
+        @@last_base_height ||= 760.mm
+        @@last_worktop_th ||= 40.mm
+        insert_z = @@last_base_plinth + @@last_base_height + @@last_worktop_th + w_gap
+      end
+
+      if is_new_cab
+        smart_cabs = model.entities.grep(Sketchup::Group).select { |cg| cg.get_attribute("SmartCabinet", "IsSmart") && cg != main_cab }
+        unless smart_cabs.empty?
+          max_x = 0.to_mm
+          smart_cabs.each { |c| 
+            bx = c.bounds.corner(1).x # +x corner
+            max_x = bx if bx > max_x 
+          }
+          insert_x = max_x
+        end
+      end
       
       # Gola Settings
       is_gola = (f['front_type'].to_s.downcase.include?("gola") || 
@@ -1339,6 +1380,20 @@ module SmartCabinetMaker
           b_comp.name = "Drawer_Box_#{i+1}"
           b_comp.material = m_car
         end
+      end
+
+      # Draw Worktop for Base cabinets
+      if b['cab_type'] == "Base" && w_th > 0
+        wt_grp = ent.add_group; wt_grp.name = "Worktop"
+        wt_grp.material = m_worktop
+        wt_ent = wt_grp.entities
+        wt_d = d + 20.mm # Default 20mm front overhang
+        box(wt_ent, 0.mm, -20.mm, pl + h, w, wt_d, w_th)
+      end
+      
+      # Apply calculated translation for new cabinets
+      if is_new_cab
+        main_cab.transform!(Geom::Transformation.translation([insert_x, 0, insert_z]))
       end
     rescue => e
       UI.messagebox("Build Error: #{e.message}")
@@ -1927,8 +1982,9 @@ module SmartCabinetMaker
   end
 
   def self.show_dialog
+    @dialog.close if @dialog && @dialog.visible? rescue nil
     o = { 
-      dialog_title: "Smart Cabinet Maker Pro v13.4", 
+      dialog_title: "Smart Cabinet Maker Pro v14.0", 
       preferences_key: "SmartCabinetMakerPro_UI", 
       width: 520, 
       height: 600, 
@@ -1937,7 +1993,7 @@ module SmartCabinetMaker
       style: UI::HtmlDialog::STYLE_DIALOG 
     }
     @dialog = UI::HtmlDialog.new(o)
-    @dialog.set_html(File.read(File.join(File.dirname(__FILE__), 'ui_v13', 'index.html')))
+    @dialog.set_html(File.read(File.join(File.dirname(__FILE__), 'index.html')))
     @dialog.add_action_callback("buildCabinet") { |c, j| self.build_cabinet(JSON.parse(j)) }
     @dialog.add_action_callback("browseFile") { |c, id|
       path = UI.openpanel("Επιλογή Υλικού (Texture)", "", "*.jpg;*.png;*.bmp;*.tif;*.png")
