@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabinet Master 3D Plugin v2.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --bg-dark: #0f0f14;
+            --bg-panel: #1a1a22;
+            --bg-input: #121218;
+            --bg-panel-hover: #22222c;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --text-primary: #e8e8f0;
+            --text-secondary: #b0b0c0;
+            --text-muted: #6b6b80;
+            --border: #2a2a38;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            height: 100vh;
+            padding: 12px;
+            gap: 12px;
+        }
+        .sidebar {
+            width: 220px;
+            background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-dark) 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 20px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #1a1a22 0%, #14141a 100%);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .logo-title {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+        .logo-subtitle {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .nav-menu {
+            padding: 14px 8px;
+            flex: 1;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 2px;
+            position: relative;
+        }
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border-left: 3px solid var(--accent-blue);
+        }
+        .nav-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .nav-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .main-content {
+            flex: 1;
+            background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-dark) 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .top-bar {
+            padding: 14px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+        }
+        .project-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .project-label {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .project-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .top-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .top-btn:hover {
+            background: var(--bg-panel-hover);
+            color: var(--text-primary);
+            border-color: #353548;
+        }
+        .content-area {
+            flex: 1;
+            padding: 24px 28px;
+            display: flex;
+            gap: 24px;
+            overflow-y: auto;
+        }
+        .left-panel {
+            flex: 1;
+            min-width: 300px;
+            max-width: 450px;
+        }
+        .right-panel {
+            flex: 1.4;
+            background: var(--bg-input);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .panel-title {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+        .property-group {
+            margin-bottom: 18px;
+        }
+        .property-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .property-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .property-input, .property-select {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+        }
+        .property-select {
+            cursor: pointer;
+        }
+        .unit-label {
+            padding: 0 14px 0 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 28px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-blue-hover) 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59,130,246,0.25);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-blue);
+            border: 1px solid var(--accent-blue);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .btn-secondary:hover {
+            background: rgba(59, 130, 246, 0.08);
+        }
+        .section-header {
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin: 35px 0 15px 0;
+            display: flex;
+            align-items: center;
+            letter-spacing: 1.5px;
+        }
+        .section-header::after {
+            content: "";
+            flex: 1;
+            height: 1.5px;
+            background: rgba(255,255,255,0.05);
+            margin-left: 15px;
+        }
+        .property-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: rgba(255,255,255,0.02);
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .grid-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .grid-item label {
+            font-size: 10px;
+            font-weight: 900;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .switch-container {
+            display: flex;
+            align-items: center;
+            height: 36px;
+            width: 120px;
+            justify-content: flex-end;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--accent-blue);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .browse-btn {
+            padding: 0 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-left: none;
+            cursor: pointer;
+            border-radius: 0 8px 8px 0;
+            height: 44px;
+        }
+        .cabinet-preview {
+            position: relative;
+            width: 300px;
+            height: 460px;
+        }
+        .cabinet {
+            position: relative;
+            width: 260px;
+            height: 400px;
+            background: linear-gradient(145deg, #252532 0%, #1a1a22 100%);
+            border-radius: 3px;
+            border: 1px solid #353548;
+            margin: 0 auto;
+            transform: perspective(800px) rotateY(-10deg);
+        }
+        .cabinet-inner {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            background: linear-gradient(180deg, #1a1a22 0%, #14141a 100%);
+            border-radius: 2px;
+        }
+        .shelf {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            height: 6px;
+            background: linear-gradient(90deg, #8b7355 0%, #6b5344 100%);
+        }
+        .shelf-1 { top: 90px; }
+        .shelf-2 { top: 190px; }
+        .drawer {
+            position: absolute;
+            bottom: 35px;
+            left: 10px;
+            right: 10px;
+            height: 90px;
+            background: linear-gradient(180deg, #8b7355 0%, #7a6248 100%);
+            border-radius: 2px;
+            border: 1px solid #5a4535;
+        }
+        .drawer-handle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 5px;
+            background: #4a3a2a;
+            border-radius: 2px;
+        }
+        .plinth {
+            position: absolute;
+            bottom: 0;
+            left: 5px;
+            right: 5px;
+            height: 35px;
+            background: linear-gradient(180deg, #252532 0%, #1a1a22 100%);
+            border-radius: 0 0 3px 3px;
+            border: 1px solid #353548;
+            border-top: none;
+        }
+        .dim-right {
+            position: absolute;
+            right: -45px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .dim-line-v {
+            width: 2px;
+            height: 360px;
+            background: var(--accent-blue);
+            position: relative;
+        }
+        .dim-line-v::before, .dim-line-v::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            width: 18px;
+            height: 2px;
+            background: var(--accent-blue);
+        }
+        .dim-line-v::before { top: 0; }
+        .dim-line-v::after { bottom: 0; }
+        .dim-text-v {
+            position: absolute;
+            top: 50%;
+            right: -38px;
+            transform: translateY(-50%) rotate(90deg);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .dim-bottom {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 55px;
+        }
+        .dim-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .dim-line-h {
+            height: 2px;
+            background: var(--accent-blue);
+            position: relative;
+        }
+        .dim-line-h.width { width: 190px; }
+        .dim-line-h.depth { width: 45px; }
+        .dim-line-h::before, .dim-line-h::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            width: 2px;
+            height: 18px;
+            background: var(--accent-blue);
+        }
+        .dim-line-h::before { left: 0; }
+        .dim-line-h::after { right: 0; }
+        .dim-text-h {
+            margin-top: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9090a0" stroke-width="2">
+                            <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/>
+                            <path d="M3 9l9-6 9 6"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <div class="logo-title">CABINET MASTER</div>
+                        <div class="logo-subtitle">3D Plugin v2.1</div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item" onclick="openTab(event, 'globals')">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">General Rules</span>
+                </div>
+                <div class="nav-item active" onclick="openTab(event, 'box')">
+                    <span class="nav-icon">🗄️</span>
+                    <span class="nav-label">Cabinet Box</span>
+                </div>
+                <div class="nav-item" onclick="openTab(event, 'joinery')">
+                    <span class="nav-icon">🔩</span>
+                    <span class="nav-label">Joinery & Hardware</span>
+                </div>
+                <div class="nav-item" onclick="openTab(event, 'interior')">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">Interior Space</span>
+                </div>
+                <div class="nav-item" onclick="openTab(event, 'fronts')">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-label">Fronts & Handles</span>
+                </div>
+                <div class="nav-item" onclick="openTab(event, 'materials')">
+                    <span class="nav-icon">🎨</span>
+                    <span class="nav-label">Materials</span>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="project-info">
+                    <span class="project-label">Project:</span>
+                    <span class="project-name">Modern Kitchen Design</span>
+                </div>
+                <div class="top-bar-right">
+                    <select id="preset_selector" onchange="loadPreset()" style="padding:8px 12px; border: 1px solid var(--border); border-radius:8px; background: var(--bg-panel); color: var(--text-primary); font-weight:600;">
+                        <option value="">-- Presets --</option>
+                    </select>
+                    <button onclick="callRuby('ghostMode')" class="top-btn">👻 Ghost Mode</button>
+                    <button onclick="callRuby('hideDoors')" class="top-btn">🚪 Hide/Show</button>
+                    <button onclick="callRuby('smartLens')" class="top-btn">🔍 Smart Lens</button>
+                    <button class="btn-primary" onclick="buildCabinet()">Build 3D</button>
+                </div>
+            </div>
+            <div class="content-area">
+                <div class="left-panel">
+                    <div id="globals" class="tabcontent" style="display:block;">
+                        <h3 class="panel-title">General Rules</h3>
+                        <div class="property-group">
+                            <div class="property-label">Material Thickness</div>
+                            <div class="property-input-wrapper">
+                                <input type="number" class="property-input" id="mat_th" value="18" step="0.5">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Back Thickness</div>
+                            <div class="property-input-wrapper">
+                                <input type="number" class="property-input" id="back_th" value="8">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Gap</div>
+                            <div class="property-input-wrapper">
+                                <input type="number" class="property-input" id="gap" value="3">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Plinth Height</div>
+                            <div class="property-input-wrapper">
+                                <input type="number" class="property-input" id="plinth" value="120">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">PVC Thickness</div>
+                            <div class="property-input-wrapper">
+                                <input type="number" class="property-input" id="pvc_th" value="1">
+                            </div>
+                        </div>
+                        <div class="section-header">Worktop & Placement</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Worktop Thickness</label>
+                                <input type="number" class="property-input" id="worktop_th" value="40">
+                            </div>
+                            <div class="grid-item">
+                                <label>Gap Backsplash</label>
+                                <input type="number" class="property-input" id="gap_backsplash" value="600">
+                            </div>
+                        </div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Preset Name</label>
+                                <input type="text" class="property-input" id="preset_name" placeholder="Preset name...">
+                            </div>
+                            <div class="grid-item">
+                                <label>Save</label>
+                                <button class="btn-secondary" onclick="savePreset()" style="width:100%;">Save Preset</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="box" class="tabcontent">
+                        <h3 class="panel-title">Cabinet Box Configuration</h3>
+                        <div class="property-group">
+                            <div class="property-label">Cabinet Type</div>
+                            <div class="property-input-wrapper">
+                                <select class="property-select" id="cab_type" onchange="updateDefaults()">
+                                    <option value="Base">Base (760/560)</option>
+                                    <option value="Wall">Wall (720/330)</option>
+                                    <option value="Wardrobe">Wardrobe (2200/580)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Width</label>
+                                <input type="number" class="property-input" id="width" value="800">
+                            </div>
+                            <div class="grid-item">
+                                <label>Height</label>
+                                <input type="number" class="property-input" id="height" value="760">
+                            </div>
+                            <div class="grid-item">
+                                <label>Depth</label>
+                                <input type="number" class="property-input" id="depth" value="560">
+                            </div>
+                            <div class="grid-item">
+                                <label>Top Type</label>
+                                <select class="property-select" id="top_type" onchange="updateTopDefaults()">
+                                    <option value="Solid">Solid</option>
+                                    <option value="Rails">Rails</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="property-group" id="rail-width-group">
+                            <div class="property-label">Rail Width</div>
+                            <div class="property-input-wrapper">
+                                <input type="number" class="property-input" id="rail_width" value="100">
+                            </div>
+                        </div>
+                        <div class="section-header">Plinth & Legs</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Base Type</label>
+                                <select class="property-select" id="base_type">
+                                    <option value="Box">Box (Perimeter)</option>
+                                    <option value="FrontLegs">Front Plinth + Legs</option>
+                                    <option value="LegsOnly">Legs Only</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Front Inset</label>
+                                <input type="number" class="property-input" id="plinth_inset_f" value="50">
+                            </div>
+                            <div class="grid-item">
+                                <label>Back Inset</label>
+                                <input type="number" class="property-input" id="plinth_inset_b" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="joinery" class="tabcontent">
+                        <h3 class="panel-title">Joinery & Hardware</h3>
+                        <div class="property-group">
+                            <div class="property-label">Construction Type</div>
+                            <div class="property-input-wrapper">
+                                <select class="property-select" id="conn_type">
+                                    <option value="SideOverTop">Side Over Top</option>
+                                    <option value="TopOverSide">Top Over Side</option>
+                                    <option value="Miter">Miter (45°)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="section-header">Connectors</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Connector Type</label>
+                                <select class="property-select" id="connector_type" onchange="updateConnectorDefaults()">
+                                    <option value="Screw_3.5">Screws 3.5</option>
+                                    <option value="Dowel" selected>Dowel Ø8</option>
+                                    <option value="Minifix">Minifix Ø15</option>
+                                    <option value="Lamello_Clamex">Lamello Clamex</option>
+                                    <option value="Cabineo">Cabineo Ø8</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Mode</label>
+                                <select class="property-select" id="connector_mode">
+                                    <option value="Manual">Manual</option>
+                                    <option value="Auto">Auto</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Qty / Step</label>
+                                <input type="number" class="property-input" id="connector_val" value="3">
+                            </div>
+                            <div class="grid-item">
+                                <label>Offset</label>
+                                <input type="number" class="property-input" id="connector_offset" value="37">
+                            </div>
+                        </div>
+                        <div class="section-header">Back Panel & Groove</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Back Type</label>
+                                <select class="property-select" id="back_type" onchange="updateBackDefaults()">
+                                    <option value="Nailed">Nailed</option>
+                                    <option value="Grooved" selected>Grooved</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Back Inset</label>
+                                <input type="number" class="property-input" id="back_inset" value="15">
+                            </div>
+                            <div class="grid-item">
+                                <label>Groove Depth</label>
+                                <input type="number" class="property-input" id="groove_depth" value="8">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="interior" class="tabcontent">
+                        <h3 class="panel-title">Interior Space</h3>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Vertical Dividers</label>
+                                <input type="number" class="property-input" id="v_dividers" value="0">
+                            </div>
+                            <div class="grid-item">
+                                <label>Shelves</label>
+                                <input type="number" class="property-input" id="shelves" value="1">
+                            </div>
+                            <div class="grid-item">
+                                <label>Shelf Inset</label>
+                                <input type="number" class="property-input" id="shelf_inset" value="20">
+                            </div>
+                            <div class="grid-item">
+                                <label>Zone Splitter</label>
+                                <select class="property-select" id="zone_split">
+                                    <option value="None">None</option>
+                                    <option value="Vertical">Vertical</option>
+                                    <option value="Horizontal">Horizontal</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="property-group" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="property-label">Line Boring</div>
+                            <div class="switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" id="line_boring">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="property-grid" id="line-boring-grid">
+                            <div class="grid-item">
+                                <label>Offset Front</label>
+                                <input type="number" class="property-input" id="lb_offset_f" value="37">
+                            </div>
+                            <div class="grid-item">
+                                <label>Offset Back</label>
+                                <input type="number" class="property-input" id="lb_offset_b" value="37">
+                            </div>
+                            <div class="grid-item">
+                                <label>Step</label>
+                                <select class="property-select" id="lb_step">
+                                    <option value="32" selected>32 mm</option>
+                                    <option value="64">64 mm</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Holes / Shelf</label>
+                                <select class="property-select" id="lb_qty">
+                                    <option value="Full" selected>Continuous</option>
+                                    <option value="3">3</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="fronts" class="tabcontent">
+                        <h3 class="panel-title">Fronts & Handles</h3>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Front Type</label>
+                                <select class="property-select" id="front_type" onchange="updateFrontDefaults()">
+                                    <option value="Doors">Doors</option>
+                                    <option value="Drawers">Drawers</option>
+                                    <option value="Gola">Gola</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Overlay</label>
+                                <select class="property-select" id="overlay_type">
+                                    <option value="Full">Full</option>
+                                    <option value="Half">Half</option>
+                                    <option value="Inset">Inset</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Count</label>
+                                <input type="number" class="property-input" id="front_count" value="2">
+                            </div>
+                        </div>
+                        <div class="section-header">Hinges</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Hinge Type</label>
+                                <select class="property-select" id="hinge_type" onchange="updateHingeDefaults()">
+                                    <option value="Blum_ClipTop">Blum ClipTop 110°</option>
+                                    <option value="Blum_INSERTA">Blum INSERTA</option>
+                                    <option value="Salice_110">Salice 110°</option>
+                                    <option value="Hettich_Sensys">Hettich Sensys</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                            <div class="grid-item">
+                                <label>Offset</label>
+                                <input type="number" class="property-input" id="hinge_offset" value="100">
+                            </div>
+                        </div>
+                        <div class="section-header">Handles & Gola</div>
+                        <div class="property-group">
+                            <div class="property-label">Handle Type</div>
+                            <div class="property-input-wrapper">
+                                <select class="property-select" id="handle_type" onchange="toggleGolaSettings()">
+                                    <option value="Bar">Bar</option>
+                                    <option value="Knob">Knob</option>
+                                    <option value="Gola">Gola Profile</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="handle_params_section">
+                            <div class="property-grid">
+                                <div class="grid-item">
+                                    <label>Center Distance</label>
+                                    <input type="number" class="property-input" id="handle_cc" value="128">
+                                </div>
+                                <div class="grid-item">
+                                    <label>Offset X</label>
+                                    <input type="number" class="property-input" id="handle_offset_x" value="40">
+                                </div>
+                                <div class="grid-item">
+                                    <label>Offset Z</label>
+                                    <input type="number" class="property-input" id="handle_offset_z" value="40">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="gola_params_section" style="display:none;">
+                            <div class="property-group">
+                                <div class="property-label">Gola Hardware</div>
+                                <div class="property-input-wrapper">
+                                    <select class="property-select" id="gola_preset" onchange="applyGolaPreset()">
+                                        <option value="custom">Custom</option>
+                                        <option value="volpato_l">Volpato L-Profile</option>
+                                        <option value="volpato_c">Volpato C-Profile</option>
+                                        <option value="dtc_l">DTC L-Profile</option>
+                                        <option value="dtc_c">DTC C-Profile</option>
+                                        <option value="geman_l">German L-Gola</option>
+                                        <option value="geman_c">German C-Gola</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="property-grid">
+                                <div class="grid-item">
+                                    <label>Profile Type</label>
+                                    <select class="property-select" id="gola_type">
+                                        <option value="L">L-Profile</option>
+                                        <option value="U">U-Profile</option>
+                                        <option value="German_L">German L</option>
+                                        <option value="German_U">German C</option>
+                                    </select>
+                                </div>
+                                <div class="grid-item">
+                                    <label>Size (H)</label>
+                                    <input type="number" class="property-input" id="gola_size" value="57" step="0.1">
+                                </div>
+                                <div class="grid-item">
+                                    <label>Depth</label>
+                                    <input type="number" class="property-input" id="gola_depth" value="26" step="0.1">
+                                </div>
+                                <div class="grid-item">
+                                    <label>Radius</label>
+                                    <input type="number" class="property-input" id="gola_radius" value="5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="materials" class="tabcontent">
+                        <h3 class="panel-title">Materials Library</h3>
+                        <div class="section-header">Carcass</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Name</label>
+                                <input type="text" class="property-input" id="mat_carcass_name" value="White Melamine">
+                            </div>
+                            <div class="grid-item">
+                                <label>PVC</label>
+                                <input type="text" class="property-input" id="mat_carcass_pvc" value="W1000">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Texture</div>
+                            <div class="property-input-wrapper">
+                                <input type="text" class="property-input" id="mat_carcass_tex" style="flex:1; border:none;">
+                                <button class="browse-btn" onclick="browseFile('mat_carcass_tex')">📁</button>
+                            </div>
+                        </div>
+                        <div class="section-header">Front 1</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Name</label>
+                                <input type="text" class="property-input" id="mat_front1_name" value="Oak Veneer">
+                            </div>
+                            <div class="grid-item">
+                                <label>PVC</label>
+                                <input type="text" class="property-input" id="mat_front1_pvc" value="Oak-PVC">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Texture</div>
+                            <div class="property-input-wrapper">
+                                <input type="text" class="property-input" id="mat_front1_tex" style="flex:1; border:none;">
+                                <button class="browse-btn" onclick="browseFile('mat_front1_tex')">📁</button>
+                            </div>
+                        </div>
+                        <div class="section-header">Front 2</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Name</label>
+                                <input type="text" class="property-input" id="mat_front2_name" value="Anthracite">
+                            </div>
+                            <div class="grid-item">
+                                <label>PVC</label>
+                                <input type="text" class="property-input" id="mat_front2_pvc" value="Anthra-PVC">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Texture</div>
+                            <div class="property-input-wrapper">
+                                <input type="text" class="property-input" id="mat_front2_tex" style="flex:1; border:none;">
+                                <button class="browse-btn" onclick="browseFile('mat_front2_tex')">📁</button>
+                            </div>
+                        </div>
+                        <div class="section-header">Other Materials</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Back Panel</label>
+                                <input type="text" class="property-input" id="mat_back_name" value="HDF White">
+                            </div>
+                            <div class="grid-item">
+                                <label>Plinth</label>
+                                <input type="text" class="property-input" id="mat_plinth_name" value="Aluminum">
+                            </div>
+                        </div>
+                        <div class="section-header">Worktop</div>
+                        <div class="property-grid">
+                            <div class="grid-item">
+                                <label>Worktop Name</label>
+                                <input type="text" class="property-input" id="mat_worktop_name" value="Oak Worktop">
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <div class="property-label">Worktop Texture</div>
+                            <div class="property-input-wrapper">
+                                <input type="text" class="property-input" id="mat_worktop_tex" style="flex:1; border:none;">
+                                <button class="browse-btn" onclick="browseFile('mat_worktop_tex')">📁</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="right-panel">
+                    <div class="cabinet-preview">
+                        <div class="cabinet">
+                            <div class="cabinet-inner">
+                                <div class="shelf shelf-1"></div>
+                                <div class="shelf shelf-2"></div>
+                                <div class="drawer">
+                                    <div class="drawer-handle"></div>
+                                </div>
+                            </div>
+                            <div class="plinth"></div>
+                        </div>
+                        <div class="dim-right">
+                            <div class="dim-line-v"></div>
+                            <div class="dim-text-v" id="dim-height">2100</div>
+                        </div>
+                        <div class="dim-bottom">
+                            <div class="dim-group">
+                                <div class="dim-line-h width"></div>
+                                <div class="dim-text-h" id="dim-width">800</div>
+                            </div>
+                            <div class="dim-group">
+                                <div class="dim-line-h depth"></div>
+                                <div class="dim-text-h" id="dim-depth">600 mm</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const GOLA_PRESETS = {
+            volpato_l: { type: "L", size: 57, depth: 26, radius: 5 },
+            volpato_c: { type: "U", size: 73, depth: 27, radius: 5 },
+            dtc_l: { type: "L", size: 57, depth: 26, radius: 5 },
+            dtc_c: { type: "U", size: 74, depth: 27, radius: 5 },
+            geman_l: { type: "German_L", size: 57.9, depth: 26.2, radius: 5 },
+            geman_c: { type: "German_U", size: 72.6, depth: 26.2, radius: 5 }
+        };
+        function callRuby(callbackName, ...args) {
+            if (typeof sketchup !== 'undefined' && sketchup[callbackName]) {
+                sketchup[callbackName](...args);
+            } else {
+                var url = 'skp:' + callbackName;
+                if (args.length > 0) {
+                    url += '@' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join('@');
+                }
+                window.location.href = url;
+            }
+        }
+        function applyGolaPreset() {
+            const v = document.getElementById("gola_preset").value;
+            if (v && GOLA_PRESETS[v]) {
+                const p = GOLA_PRESETS[v];
+                document.getElementById("gola_type").value = p.type;
+                document.getElementById("gola_size").value = p.size;
+                document.getElementById("gola_depth").value = p.depth;
+                document.getElementById("gola_radius").value = p.radius;
+            }
+        }
+        var CONNECTOR_OFFSETS = {
+            "Screw_3.5": { offset: 37, val: 3 },
+            "Dowel": { offset: 37, val: 3 },
+            "Minifix": { offset: 37, val: 2 },
+            "Lamello_Clamex": { offset: 50, val: 2 },
+            "Cabineo": { offset: 37, val: 2 },
+            "None": { offset: 37, val: 0 }
+        };
+        function updateConnectorDefaults() {
+            var ct = document.getElementById('connector_type').value;
+            var info = CONNECTOR_OFFSETS[ct];
+            if (info) {
+                document.getElementById('connector_offset').value = info.offset;
+                document.getElementById('connector_val').value = info.val;
+            }
+        }
+        var HINGE_OFFSETS = {
+            "Blum_ClipTop": { offset: 100 },
+            "Blum_INSERTA": { offset: 100 },
+            "Salice_110": { offset: 100 },
+            "Hettich_Sensys": { offset: 100 },
+            "None": { offset: 100 }
+        };
+        function updateHingeDefaults() {
+            var ht = document.getElementById('hinge_type').value;
+            var info = HINGE_OFFSETS[ht];
+            if (info) {
+                document.getElementById('hinge_offset').value = info.offset;
+            }
+        }
+        var BACK_DEFAULTS = {
+            "Nailed": { inset: 0, groove: 8 },
+            "Grooved": { inset: 15, groove: 8 },
+            "Hybrid": { inset: 15, groove: 8 }
+        };
+        function updateBackDefaults() {
+            var bt = document.getElementById('back_type').value;
+            var info = BACK_DEFAULTS[bt];
+            if (info) {
+                document.getElementById('back_inset').value = info.inset;
+                document.getElementById('groove_depth').value = info.groove;
+            }
+        }
+        function updateTopDefaults() {
+            var tt = document.getElementById('top_type').value;
+            var railGroup = document.getElementById('rail-width-group');
+            if (railGroup) {
+                railGroup.style.display = (tt === 'Rails') ? 'block' : 'none';
+            }
+        }
+        function openTab(evt, tabName) {
+            var tc = document.getElementsByClassName("tabcontent");
+            for (var i = 0; i < tc.length; i++) {
+                tc[i].style.display = "none";
+            }
+            var tl = document.getElementsByClassName("nav-item");
+            for (i = 0; i < tl.length; i++) {
+                tl[i].classList.remove("active");
+            }
+            document.getElementById(tabName).style.display = "block";
+            if (evt) {
+                evt.currentTarget.classList.add("active");
+            }
+        }
+        function updateDefaults() {
+            var t = document.getElementById('cab_type').value;
+            var topTypeEl = document.getElementById('top_type');
+            var handleTypeEl = document.getElementById('handle_type');
+            if (t === 'Base') {
+                document.getElementById('height').value = 760;
+                document.getElementById('depth').value = 560;
+                topTypeEl.disabled = false;
+            } else if (t === 'Wall') {
+                document.getElementById('height').value = 720;
+                document.getElementById('depth').value = 330;
+                topTypeEl.value = 'Solid';
+                topTypeEl.disabled = true;
+                if (handleTypeEl.value === 'Gola') handleTypeEl.value = 'Bar';
+                toggleGolaSettings();
+            } else if (t === 'Wardrobe') {
+                document.getElementById('height').value = 2200;
+                document.getElementById('depth').value = 580;
+                topTypeEl.value = 'Solid';
+                topTypeEl.disabled = true;
+                if (handleTypeEl.value === 'Gola') handleTypeEl.value = 'Bar';
+                toggleGolaSettings();
+            }
+        }
+        function updateFrontDefaults() {
+            var ft = document.getElementById('front_type').value;
+            if (ft === 'Drawers') {
+                document.getElementById('shelves').value = 0;
+                document.getElementById('front_count').value = 3;
+                document.getElementById('handle_type').value = 'Bar';
+                toggleGolaSettings();
+            } else if (ft === 'Gola') {
+                document.getElementById('handle_type').value = 'Gola';
+                toggleGolaSettings();
+                document.getElementById('gola_preset').value = 'volpato_l';
+                applyGolaPreset();
+            }
+        }
+        function normalizePresetData(data) {
+            if (!data) return data;
+            var d = JSON.parse(JSON.stringify(data));
+            if (d.joinery) {
+                d.box = d.box || {};
+                if (d.joinery.connectorType !== undefined) d.box.connector_type = d.joinery.connectorType;
+                if (d.joinery.connectorMode !== undefined) d.box.connector_mode = d.joinery.connectorMode;
+                if (d.joinery.connectorVal !== undefined) d.box.connector_val = d.joinery.connectorVal;
+                if (d.joinery.connectorOffset !== undefined) d.box.connector_offset = d.joinery.connectorOffset;
+            }
+            if (d.interior && d.interior.verticalDividers !== undefined && d.interior.v_dividers === undefined) {
+                d.interior.v_dividers = d.interior.verticalDividers;
+            }
+            if (d.materials) {
+                if (d.materials.carcassName !== undefined && d.materials.mat_carcass_name === undefined) d.materials.mat_carcass_name = d.materials.carcassName;
+                if (d.materials.carcassCode !== undefined && d.materials.mat_carcass_pvc === undefined) d.materials.mat_carcass_pvc = d.materials.carcassCode;
+                if (d.materials.frontName !== undefined && d.materials.mat_front1_name === undefined) d.materials.mat_front1_name = d.materials.frontName;
+            }
+            return d;
+        }
+        function toggleGolaSettings() {
+            var v = document.getElementById('handle_type').value;
+            document.getElementById('gola_params_section').style.display = (v === 'Gola') ? 'block' : 'none';
+            document.getElementById('handle_params_section').style.display = (v === 'Gola' || v === 'None') ? 'none' : 'block';
+        }
+        function browseFile(id) { callRuby('browseFile', id);
+        }
+        function setFilePath(id, path) { document.getElementById(id).value = path;
+        }
+        function getVal(id) { return document.getElementById(id).value;
+        }
+        function collectData() { return {
+            global: {
+                materialThickness: parseFloat(document.getElementById('mat_th').value),
+                backThickness: parseFloat(document.getElementById('back_th').value),
+                gap: parseFloat(document.getElementById('gap').value),
+                base_type: getVal('base_type'),
+                plinthHeight: parseFloat(document.getElementById('plinth').value),
+                pvcThickness: parseFloat(document.getElementById('pvc_th').value),
+                worktopThickness: parseFloat(document.getElementById('worktop_th').value),
+                gapBacksplash: parseFloat(document.getElementById('gap_backsplash').value)
+            },
+            box: {
+                cab_type: getVal('cab_type'),
+                width: parseFloat(document.getElementById('width').value),
+                height: parseFloat(document.getElementById('height').value),
+                depth: parseFloat(document.getElementById('depth').value),
+                backType: getVal('back_type'),
+                topType: getVal('top_type'),
+                railWidth: parseFloat(document.getElementById('rail_width').value),
+                connType: getVal('conn_type'),
+                backInset: parseFloat(document.getElementById('back_inset').value),
+                grooveDepth: parseFloat(document.getElementById('groove_depth').value),
+                plinthInsetF: parseFloat(document.getElementById('plinth_inset_f').value),
+                plinthInsetB: parseFloat(document.getElementById('plinth_inset_b').value),
+                connector_type: getVal('connector_type'),
+                connector_mode: getVal('connector_mode'),
+                connector_val: parseFloat(document.getElementById('connector_val').value),
+                connector_offset: parseFloat(document.getElementById('connector_offset').value)
+            },
+            front: {
+                front_type: getVal('front_type'),
+                overlay_type: getVal('overlay_type'),
+                count: parseInt(document.getElementById('front_count').value),
+                hingeType: getVal('hinge_type'),
+                hingeOffset: parseFloat(document.getElementById('hinge_offset').value),
+                handle_type: getVal('handle_type'),
+                handle_cc: parseFloat(document.getElementById('handle_cc').value),
+                handle_offset_x: parseFloat(document.getElementById('handle_offset_x').value),
+                handle_offset_z: parseFloat(document.getElementById('handle_offset_z').value),
+                gola_size: parseFloat(document.getElementById('gola_size').value),
+                gola_depth: parseFloat(document.getElementById('gola_depth').value),
+                gola_radius: parseFloat(document.getElementById('gola_radius').value),
+                gola_type: getVal('gola_type')
+            },
+            interior: {
+                v_dividers: parseInt(document.getElementById('v_dividers').value),
+                shelves: parseInt(document.getElementById('shelves').value),
+                line_boring: document.getElementById('line_boring').checked,
+                lb_offset_f: parseFloat(document.getElementById('lb_offset_f').value),
+                lb_offset_b: parseFloat(document.getElementById('lb_offset_b').value),
+                lb_step: parseFloat(document.getElementById('lb_step').value),
+                lb_qty: getVal('lb_qty'),
+                shelf_inset: parseFloat(document.getElementById('shelf_inset').value),
+                zone_split: getVal('zone_split')
+            },
+            materials: {
+                mat_carcass_name: getVal('mat_carcass_name'),
+                mat_carcass_pvc: getVal('mat_carcass_pvc'),
+                mat_carcass_tex: getVal('mat_carcass_tex'),
+                mat_front1_name: getVal('mat_front1_name'),
+                mat_front1_pvc: getVal('mat_front1_pvc'),
+                mat_front1_tex: getVal('mat_front1_tex'),
+                mat_front2_name: getVal('mat_front2_name'),
+                mat_front2_pvc: getVal('mat_front2_pvc'),
+                mat_front2_tex: getVal('mat_front2_tex'),
+                mat_back_name: getVal('mat_back_name'),
+                mat_plinth_name: getVal('mat_plinth_name'),
+                mat_worktop_name: getVal('mat_worktop_name'),
+                mat_worktop_tex: getVal('mat_worktop_tex')
+            }
+        };
+        }
+        function buildCabinet() {
+            callRuby('buildCabinet', JSON.stringify(collectData()));
+        }
+        function savePreset() {
+            callRuby('savePreset', document.getElementById('preset_name').value, JSON.stringify(collectData()));
+        }
+        function loadPreset() {
+            callRuby('loadPreset', document.getElementById('preset_selector').value);
+        }
+        function updatePresetsList(presets) {
+            const sel = document.getElementById("preset_selector");
+            sel.innerHTML = '<option value="">-- Presets --</option>';
+            for (const name in presets) {
+                if (presets.hasOwnProperty(name)) {
+                    const opt = document.createElement("option");
+                    opt.value = name;
+                    opt.textContent = name;
+                    sel.appendChild(opt);
+                }
+            }
+        }
+        function loadPresetData(data) {
+            if (!data) return;
+            data = normalizePresetData(data);
+            if (data.global) {
+                if (data.global.materialThickness !== undefined) document.getElementById('mat_th').value = data.global.materialThickness;
+                if (data.global.backThickness !== undefined) document.getElementById('back_th').value = data.global.backThickness;
+                if (data.global.gap !== undefined) document.getElementById('gap').value = data.global.gap;
+                if (data.global.base_type !== undefined) document.getElementById('base_type').value = data.global.base_type;
+                if (data.global.plinthHeight !== undefined) document.getElementById('plinth').value = data.global.plinthHeight;
+                if (data.global.pvcThickness !== undefined) document.getElementById('pvc_th').value = data.global.pvcThickness;
+                if (data.global.worktopThickness !== undefined) document.getElementById('worktop_th').value = data.global.worktopThickness;
+                if (data.global.gapBacksplash !== undefined) document.getElementById('gap_backsplash').value = data.global.gapBacksplash;
+            }
+            if (data.box) {
+                if (data.box.cab_type !== undefined) {
+                    document.getElementById('cab_type').value = data.box.cab_type;
+                    updateDefaults();
+                }
+                if (data.box.width !== undefined) document.getElementById('width').value = data.box.width;
+                if (data.box.height !== undefined) document.getElementById('height').value = data.box.height;
+                if (data.box.depth !== undefined) document.getElementById('depth').value = data.box.depth;
+                if (data.box.backType !== undefined) document.getElementById('back_type').value = data.box.backType;
+                if (data.box.topType !== undefined) document.getElementById('top_type').value = data.box.topType;
+                if (data.box.railWidth !== undefined) document.getElementById('rail_width').value = data.box.railWidth;
+                if (data.box.connType !== undefined) document.getElementById('conn_type').value = data.box.connType;
+                if (data.box.backInset !== undefined) document.getElementById('back_inset').value = data.box.backInset;
+                if (data.box.grooveDepth !== undefined) document.getElementById('groove_depth').value = data.box.grooveDepth;
+                if (data.box.plinthInsetF !== undefined) document.getElementById('plinth_inset_f').value = data.box.plinthInsetF;
+                if (data.box.plinthInsetB !== undefined) document.getElementById('plinth_inset_b').value = data.box.plinthInsetB;
+                if (data.box.connector_type !== undefined) document.getElementById('connector_type').value = data.box.connector_type;
+                if (data.box.connector_mode !== undefined) document.getElementById('connector_mode').value = data.box.connector_mode;
+                if (data.box.connector_val !== undefined) document.getElementById('connector_val').value = data.box.connector_val;
+                if (data.box.connector_offset !== undefined) document.getElementById('connector_offset').value = data.box.connector_offset;
+            }
+            if (data.front) {
+                let front_type = data.front.front_type !== undefined ? data.front.front_type : data.front.type;
+                if (front_type !== undefined) document.getElementById('front_type').value = front_type;
+                if (data.front.overlay_type !== undefined) document.getElementById('overlay_type').value = data.front.overlay_type;
+                if (data.front.count !== undefined) document.getElementById('front_count').value = data.front.count;
+                if (data.front.hingeType !== undefined) document.getElementById('hinge_type').value = data.front.hingeType;
+                if (data.front.hingeOffset !== undefined) document.getElementById('hinge_offset').value = data.front.hingeOffset;
+                let handle_type = data.front.handle_type !== undefined ? data.front.handle_type : data.front.handles;
+                if (handle_type !== undefined) {
+                    document.getElementById('handle_type').value = handle_type;
+                    toggleGolaSettings();
+                }
+                if (data.front.handle_cc !== undefined) document.getElementById('handle_cc').value = data.front.handle_cc;
+                if (data.front.handle_offset_x !== undefined) document.getElementById('handle_offset_x').value = data.front.handle_offset_x;
+                if (data.front.handle_offset_z !== undefined) document.getElementById('handle_offset_z').value = data.front.handle_offset_z;
+                if (data.front.gola_size !== undefined) document.getElementById('gola_size').value = data.front.gola_size;
+                if (data.front.gola_depth !== undefined) document.getElementById('gola_depth').value = data.front.gola_depth;
+                if (data.front.gola_radius !== undefined) document.getElementById('gola_radius').value = data.front.gola_radius;
+                if (data.front.gola_type !== undefined) document.getElementById('gola_type').value = data.front.gola_type;
+            }
+            if (data.interior) {
+                if (data.interior.v_dividers !== undefined) document.getElementById('v_dividers').value = data.interior.v_dividers;
+                if (data.interior.shelves !== undefined) document.getElementById('shelves').value = data.interior.shelves;
+                if (data.interior.line_boring !== undefined) document.getElementById('line_boring').checked = data.interior.line_boring;
+                if (data.interior.lb_offset_f !== undefined) document.getElementById('lb_offset_f').value = data.interior.lb_offset_f;
+                if (data.interior.lb_offset_b !== undefined) document.getElementById('lb_offset_b').value = data.interior.lb_offset_b;
+                if (data.interior.lb_step !== undefined) document.getElementById('lb_step').value = data.interior.lb_step;
+                if (data.interior.lb_qty !== undefined) document.getElementById('lb_qty').value = data.interior.lb_qty;
+                if (data.interior.shelf_inset !== undefined) document.getElementById('shelf_inset').value = data.interior.shelf_inset;
+                if (data.interior.zone_split !== undefined) document.getElementById('zone_split').value = data.interior.zone_split;
+            }
+            if (data.materials) {
+                if (data.materials.mat_carcass_name !== undefined) document.getElementById('mat_carcass_name').value = data.materials.mat_carcass_name;
+                if (data.materials.mat_carcass_pvc !== undefined) document.getElementById('mat_carcass_pvc').value = data.materials.mat_carcass_pvc;
+                if (data.materials.mat_carcass_tex !== undefined) document.getElementById('mat_carcass_tex').value = data.materials.mat_carcass_tex;
+                if (data.materials.mat_front1_name !== undefined) document.getElementById('mat_front1_name').value = data.materials.mat_front1_name;
+                if (data.materials.mat_front1_pvc !== undefined) document.getElementById('mat_front1_pvc').value = data.materials.mat_front1_pvc;
+                if (data.materials.mat_front1_tex !== undefined) document.getElementById('mat_front1_tex').value = data.materials.mat_front1_tex;
+                if (data.materials.mat_front2_name !== undefined) document.getElementById('mat_front2_name').value = data.materials.mat_front2_name;
+                if (data.materials.mat_front2_pvc !== undefined) document.getElementById('mat_front2_pvc').value = data.materials.mat_front2_pvc;
+                if (data.materials.mat_front2_tex !== undefined) document.getElementById('mat_front2_tex').value = data.materials.mat_front2_tex;
+                if (data.materials.mat_back_name !== undefined) document.getElementById('mat_back_name').value = data.materials.mat_back_name;
+                if (data.materials.mat_plinth_name !== undefined) document.getElementById('mat_plinth_name').value = data.materials.mat_plinth_name;
+                if (data.materials.mat_worktop_name !== undefined) document.getElementById('mat_worktop_name').value = data.materials.mat_worktop_name;
+                if (data.materials.mat_worktop_tex !== undefined) document.getElementById('mat_worktop_tex').value = data.materials.mat_worktop_tex;
+            }
+            toggleGolaSettings();
+            updateTopDefaults();
+        }
+        window.onload = function() {
+            updateDefaults();
+            updateConnectorDefaults();
+            updateHingeDefaults();
+            updateBackDefaults();
+            updateTopDefaults();
+            toggleGolaSettings();
+            callRuby('fetchPresets');
+        };
+        document.getElementById('width').addEventListener('input', function() {
+            document.getElementById('dim-width').textContent = this.value;
+        });
+        document.getElementById('height').addEventListener('input', function() {
+            document.getElementById('dim-height').textContent = this.value;
+        });
+        document.getElementById('depth').addEventListener('input', function() {
+            document.getElementById('dim-depth').textContent = this.value + ' mm';
+        });
+    </script>
+</body>
+</html>

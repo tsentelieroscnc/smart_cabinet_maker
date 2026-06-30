@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Cabinet Maker Pro v14.0 - Industrial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1e1e2e;
+            --bg-secondary: #242438;
+            --bg-tertiary: #2a2a40;
+            --bg-panel: #2d2d44;
+            --bg-hover: #363652;
+            --accent-primary: #00a6ff;
+            --accent-secondary: #007acc;
+            --accent-success: #27ae60;
+            --accent-warning: #f39c12;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0b0;
+            --text-muted: #707085;
+            --border-color: #3d3d5a;
+            --input-bg: #1a1a2e;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .preset-selector {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            min-width: 200px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .quick-btn.ghost {
+            background: rgba(0, 166, 255, 0.1);
+            border-color: rgba(0, 166, 255, 0.3);
+            color: var(--accent-primary);
+        }
+
+        .btn-build {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(0, 166, 255, 0.3);
+            transition: all 0.2s;
+        }
+
+        .btn-build:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 166, 255, 0.4);
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 70px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            width: 100%;
+            padding: 14px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 166, 255, 0.1);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            padding: 0 20px;
+            gap: 4px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+        }
+
+        /* Panel Container */
+        .panel-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Panel Title */
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-title-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        /* Property Grid */
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .property-group {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .group-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-primary);
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .property-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .property-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .property-label {
+            width: 140px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .property-input,
+        .property-select {
+            flex: 1;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .property-input:focus,
+        .property-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.1);
+        }
+
+        .property-input {
+            width: 100%;
+        }
+
+        /* Switch */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex: 1;
+        }
+
+        .switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--input-bg);
+            transition: 0.3s;
+            border-radius: 26px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-color: transparent;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background-color: white;
+        }
+
+        /* Action Row */
+        .action-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-secondary {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        /* Full Width Card */
+        .full-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* Quick Presets */
+        .quick-presets {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .preset-chip {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-chip:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-left,
+        .status-right {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+        }
+
+        /* File Input */
+        .file-input-wrapper {
+            display: flex;
+            flex: 1;
+        }
+
+        .file-input-wrapper .property-input {
+            border-radius: 6px 0 0 6px;
+            border-right: none;
+        }
+
+        .file-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 6px 6px 0;
+            padding: 0 16px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .file-btn:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+        }
+
+        /* Gola Presets */
+        .gola-presets {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .gola-preset-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .gola-preset-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 166, 255, 0.1);
+        }
+
+        .gola-preset-card.active {
+            border-color: var(--accent-primary);
+            background: rgba(0, 166, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(0, 166, 255, 0.2);
+        }
+
+        .gola-preset-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .gola-preset-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">🏠</div>
+                Smart Cabinet Maker Pro
+            </div>
+            <select class="preset-selector" id="presetSelector">
+                <option value="">-- Επιλογή Προτύπου --</option>
+                <option value="base">Βάση 600x760x560</option>
+                <option value="wall">Κρεμαστό 800x720x330</option>
+                <option value="wardrobe">Ντουλάπα 1200x2200x580</option>
+            </select>
+        </div>
+        <div class="header-right">
+            <button class="quick-btn ghost" onclick="callRuby('ghostMode')">
+                👻 Ghost
+            </button>
+            <button class="quick-btn" onclick="callRuby('hideDoors')">
+                🚪 Πόρτες
+            </button>
+            <button class="quick-btn" onclick="callRuby('smartLens')">
+                🔍 Smart Lens
+            </button>
+            <button class="btn-build" onclick="buildCabinet()">
+                ⚙️ Build 3D
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="nav-item active" data-main-tab="cabinet" onclick="switchMainTab('cabinet')">
+                <div class="nav-icon">📦</div>
+                <div class="nav-label">Ερμάριο</div>
+            </div>
+            <div class="nav-item" data-main-tab="materials" onclick="switchMainTab('materials')">
+                <div class="nav-icon">🎨</div>
+                <div class="nav-label">Υλικά</div>
+            </div>
+            <div class="nav-item" data-main-tab="hardware" onclick="switchMainTab('hardware')">
+                <div class="nav-icon">🔩</div>
+                <div class="nav-label">Υλικά</div>
+            </div>
+            <div class="nav-item" data-main-tab="export" onclick="switchMainTab('export')">
+                <div class="nav-icon">📤</div>
+                <div class="nav-label">Εξαγωγή</div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Tab Bar -->
+            <div class="tab-bar" id="cabinet-tabs">
+                <div class="tab active" data-tab="globals" onclick="switchTab('globals')">
+                    <span>⚙️</span> Γενικά
+                </div>
+                <div class="tab" data-tab="box" onclick="switchTab('box')">
+                    <span>📐</span> Σώμα
+                </div>
+                <div class="tab" data-tab="joinery" onclick="switchTab('joinery')">
+                    <span>🔗</span> Σύνδεση
+                </div>
+                <div class="tab" data-tab="interior" onclick="switchTab('interior')">
+                    <span>📋</span> Εσωτερικό
+                </div>
+                <div class="tab" data-tab="fronts" onclick="switchTab('fronts')">
+                    <span>🚪</span> Προσόψεις
+                </div>
+            </div>
+
+            <!-- Panel Container -->
+            <div class="panel-container">
+                <!-- Globals Panel -->
+                <div class="panel active" id="panel-globals">
+                    <div class="panel-title">
+                        <div class="panel-title-icon">⚙️</div>
+                        Γενικές Παράμετροι
+                    </div>
+
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <div class="group-title">Υλικά & Πλάτη</div>
+                            <div class="property-row">
+                                <div class="property-label">Πάχος Υλικού</div>
+                                <input type="number" class="property-input" id="mat_th" value="18">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Πάχος Πλάτης</div>
+                                <input type="number" class="property-input" id="back_th" value="8">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Πάχος PVC</div>
+                                <input type="number" class="property-input" id="pvc_th" value="1">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <div class="group-title">Αρμοκτήρια & Μπάζα</div>
+                            <div class="property-row">
+                                <div class="property-label">Κενό (Gap)</div>
+                                <input type="number" class="property-input" id="gap" value="3">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Ύψος Μπάζας</div>
+                                <input type="number" class="property-input" id="plinth" value="100">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Πάχος Πάγκου</div>
+                                <input type="number" class="property-input" id="worktop_th" value="40">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="full-card">
+                        <div class="group-title">Γρήγορα Προτύπα Μπάζας</div>
+                        <div class="quick-presets">
+                            <div class="preset-chip" onclick="setPlinth(100)">100mm</div>
+                            <div class="preset-chip" onclick="setPlinth(120)">120mm</div>
+                            <div class="preset-chip" onclick="setPlinth(150)">150mm</div>
+                            <div class="preset-chip" onclick="setPlinth(0)">Χωρίς Μπάζα</div>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn-secondary" onclick="resetGlobals()">🔄 Επαναφορά</button>
+                        <input type="text" class="property-input" id="presetName" placeholder="Όνομα Προτύπου" style="max-width: 250px;">
+                        <button class="btn-secondary" onclick="savePreset()">💾 Αποθήκευση Προτύπου</button>
+                    </div>
+                </div>
+
+                <!-- Box Panel -->
+                <div class="panel" id="panel-box">
+                    <div class="panel-title">
+                        <div class="panel-title-icon">📐</div>
+                        Σώμα Ερμαρίου
+                    </div>
+
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <div class="group-title">Τύπος & Διαστάσεις</div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος Ερμαρίου</div>
+                                <select class="property-select" id="cab_type" onchange="updateDefaults()">
+                                    <option value="Base">Βάσης (760/560)</option>
+                                    <option value="Wall">Κρεμαστό (720/330)</option>
+                                    <option value="Wardrobe">Ντουλάπα (2200/580)</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Πλάτος (mm)</div>
+                                <input type="number" class="property-input" id="width" value="600">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Ύψος (mm)</div>
+                                <input type="number" class="property-input" id="height" value="760">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Βάθος (mm)</div>
+                                <input type="number" class="property-input" id="depth" value="560">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <div class="group-title">Κάλυμμα & Τραβέρσες</div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος Καπάκιου</div>
+                                <select class="property-select" id="top_type">
+                                    <option value="Solid">Πάνελ</option>
+                                    <option value="Rails">Τραβέρσες</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Φάρδος Τραβέρσας</div>
+                                <input type="number" class="property-input" id="rail_width" value="100">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος Βάσης</div>
+                                <select class="property-select" id="base_type">
+                                    <option value="Box">Κουτί (Περιμετρικά)</option>
+                                    <option value="FrontLegs">Εμπρός + Ποδάκια</option>
+                                    <option value="LegsOnly">Μόνο Ποδάκια</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="full-card">
+                        <div class="group-title">Γρήγορα Μεγέθη</div>
+                        <div class="quick-presets">
+                            <div class="preset-chip" onclick="setDimensions(400,760,560)">400mm</div>
+                            <div class="preset-chip" onclick="setDimensions(500,760,560)">500mm</div>
+                            <div class="preset-chip" onclick="setDimensions(600,760,560)">600mm</div>
+                            <div class="preset-chip" onclick="setDimensions(800,760,560)">800mm</div>
+                            <div class="preset-chip" onclick="setDimensions(1000,760,560)">1000mm</div>
+                            <div class="preset-chip" onclick="setDimensions(1200,760,560)">1200mm</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Joinery Panel -->
+                <div class="panel" id="panel-joinery">
+                    <div class="panel-title">
+                        <div class="panel-title-icon">🔗</div>
+                        Σύνδεση & Εισαγωγές
+                    </div>
+
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <div class="group-title">Συνδετήρες CNC</div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος</div>
+                                <select class="property-select" id="connector_type" onchange="updateConnectorDefaults()">
+                                    <option value="Screw_3.5">Βίδες 3.5mm</option>
+                                    <option value="Dowel">Καβίλιες Ø8mm</option>
+                                    <option value="Minifix">Minifix Ø15mm</option>
+                                    <option value="Lamello_Clamex">Lamello Clamex</option>
+                                    <option value="Cabineo">Cabineo Ø8mm</option>
+                                    <option value="None">Κανένας</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Λειτουργία</div>
+                                <select class="property-select" id="connector_mode">
+                                    <option value="Auto">Αυτόματη</option>
+                                    <option value="Manual">Χειροκίνητη</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Ποσότητα/Βήμα</div>
+                                <input type="number" class="property-input" id="connector_val" value="3">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Offset</div>
+                                <input type="number" class="property-input" id="connector_offset" value="37">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <div class="group-title">Πλάτη & Γκινισιά</div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος Πλάτης</div>
+                                <select class="property-select" id="back_type">
+                                    <option value="Nailed">Καρφωτή</option>
+                                    <option value="Grooved">Γκινισιά</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Inset Πλάτης</div>
+                                <input type="number" class="property-input" id="back_inset" value="15">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Βάθος Γκινισιάς</div>
+                                <input type="number" class="property-input" id="groove_depth" value="8">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interior Panel -->
+                <div class="panel" id="panel-interior">
+                    <div class="panel-title">
+                        <div class="panel-title-icon">📋</div>
+                        Εσωτερικός Χώρος
+                    </div>
+
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <div class="group-title">Ορθοστάτες & Ράφια</div>
+                            <div class="property-row">
+                                <div class="property-label">Κάθετοι Ορθοστάτες</div>
+                                <input type="number" class="property-input" id="v_dividers" value="0">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Αριθμός Ραφιών</div>
+                                <input type="number" class="property-input" id="shelves" value="1">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Inset Ραφιού</div>
+                                <input type="number" class="property-input" id="shelf_inset" value="20">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <div class="group-title">Line Boring</div>
+                            <div class="property-row">
+                                <div class="property-label">Ενεργοποίηση</div>
+                                <div class="switch-container">
+                                    <label class="switch">
+                                        <input type="checkbox" id="line_boring">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Offset Εμπρός</div>
+                                <input type="number" class="property-input" id="lb_offset_f" value="37">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Offset Πίσω</div>
+                                <input type="number" class="property-input" id="lb_offset_b" value="37">
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Βήμα</div>
+                                <select class="property-select" id="lb_step">
+                                    <option value="32">32 mm</option>
+                                    <option value="64">64 mm</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="full-card">
+                        <div class="group-title">Zone Splitter</div>
+                        <div class="property-row">
+                            <div class="property-label">Τύπος Διαχωρισμού</div>
+                            <select class="property-select" id="zone_split">
+                                <option value="None">Κανένας</option>
+                                <option value="Vertical">Κάθετος</option>
+                                <option value="Horizontal">Οριζόντιος</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fronts Panel -->
+                <div class="panel" id="panel-fronts">
+                    <div class="panel-title">
+                        <div class="panel-title-icon">🚪</div>
+                        Προσόψεις & Μηχανισμοί
+                    </div>
+
+                    <div class="property-grid">
+                        <div class="property-group">
+                            <div class="group-title">Τύπος Προσοψών</div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος</div>
+                                <select class="property-select" id="front_type" onchange="updateFrontDefaults()">
+                                    <option value="Doors">Πόρτες</option>
+                                    <option value="Drawers">Συρτάρια</option>
+                                    <option value="Gola">Gola Front</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Overlay</div>
+                                <select class="property-select" id="overlay_type">
+                                    <option value="Full">Full</option>
+                                    <option value="Half">Half</option>
+                                    <option value="Inset">Inset</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Αριθμός (Π/Σ)</div>
+                                <input type="number" class="property-input" id="front_count" value="2">
+                            </div>
+                        </div>
+
+                        <div class="property-group">
+                            <div class="group-title">Μεντεσέδες</div>
+                            <div class="property-row">
+                                <div class="property-label">Τύπος</div>
+                                <select class="property-select" id="hinge_type">
+                                    <option value="Blum_ClipTop">Blum Clip Top 110°</option>
+                                    <option value="Blum_INSERTA">Blum INSERTA</option>
+                                    <option value="Salice_110">Salice 110°</option>
+                                    <option value="Hettich_Sensys">Hettich Sensys M</option>
+                                    <option value="None">Κανένα</option>
+                                </select>
+                            </div>
+                            <div class="property-row">
+                                <div class="property-label">Offset (mm)</div>
+                                <input type="number" class="property-input" id="hinge_offset" value="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="full-card">
+                        <div class="group-title">Πόμολες / Λαβές</div>
+                        <div class="property-row">
+                            <div class="property-label">Είδος Λαβής</div>
+                            <select class="property-select" id="handle_type" onchange="toggleGolaSettings()">
+                                <option value="Bar">Bar (2 τρύπες)</option>
+                                <option value="Knob">Knob (1 τρύπα)</option>
+                                <option value="Gola">Gola Profile</option>
+                                <option value="None">Κανένα</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="handleParams">
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <div class="group-title">Παράμετροι Λαβής</div>
+                                <div class="property-row">
+                                    <div class="property-label">Διάκεντρο</div>
+                                    <input type="number" class="property-input" id="handle_cc" value="128">
+                                </div>
+                                <div class="property-row">
+                                    <div class="property-label">Offset X</div>
+                                    <input type="number" class="property-input" id="handle_offset_x" value="40">
+                                </div>
+                                <div class="property-row">
+                                    <div class="property-label">Offset Z</div>
+                                    <input type="number" class="property-input" id="handle_offset_z" value="40">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="golaParams" style="display: none;">
+                        <div class="full-card">
+                            <div class="group-title">Gola Presets</div>
+                            <div class="gola-presets">
+                                <div class="gola-preset-card" onclick="selectGola('volpato_l')">
+                                    <div class="gola-preset-name">Volpato L</div>
+                                    <div class="gola-preset-desc">57 x 26 mm</div>
+                                </div>
+                                <div class="gola-preset-card" onclick="selectGola('volpato_c')">
+                                    <div class="gola-preset-name">Volpato C</div>
+                                    <div class="gola-preset-desc">73 x 27 mm</div>
+                                </div>
+                                <div class="gola-preset-card" onclick="selectGola('dtc_l')">
+                                    <div class="gola-preset-name">DTC L</div>
+                                    <div class="gola-preset-desc">57 x 26 mm</div>
+                                </div>
+                                <div class="gola-preset-card" onclick="selectGola('dtc_c')">
+                                    <div class="gola-preset-name">DTC C</div>
+                                    <div class="gola-preset-desc">74 x 27 mm</div>
+                                </div>
+                                <div class="gola-preset-card" onclick="selectGola('geman_l')">
+                                    <div class="gola-preset-name">German L</div>
+                                    <div class="gola-preset-desc">57.9 x 26.2 mm</div>
+                                </div>
+                                <div class="gola-preset-card" onclick="selectGola('geman_c')">
+                                    <div class="gola-preset-name">German C</div>
+                                    <div class="gola-preset-desc">72.6 x 26.2 mm</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="property-grid">
+                            <div class="property-group">
+                                <div class="group-title">Προσαρμοσμένες Παράμετροι</div>
+                                <div class="property-row">
+                                    <div class="property-label">Προφίλ</div>
+                                    <select class="property-select" id="gola_type">
+                                        <option value="L">L-Profile</option>
+                                        <option value="U">U-Profile</option>
+                                        <option value="German_L">German L-Gola</option>
+                                        <option value="German_U">German C-Gola</option>
+                                    </select>
+                                </div>
+                                <div class="property-row">
+                                    <div class="property-label">Ύψος (H)</div>
+                                    <input type="number" class="property-input" id="gola_size" value="57" step="0.1">
+                                </div>
+                                <div class="property-row">
+                                    <div class="property-label">Βάθος (D)</div>
+                                    <input type="number" class="property-input" id="gola_depth" value="26" step="0.1">
+                                </div>
+                                <div class="property-row">
+                                    <div class="property-label">Radius</div>
+                                    <input type="number" class="property-input" id="gola_radius" value="5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-left">
+            <div class="status-item">
+                <div class="status-dot"></div>
+                Σύνδεση SketchUp: Ενεργή
+            </div>
+            <div class="status-item">
+                🏷️ v14.0 Industrial
+            </div>
+        </div>
+        <div class="status-right">
+            <div class="status-item">
+                📦 Επιλεγμένο: Ερμάριο
+            </div>
+            <div class="status-item">
+                ⏱️ Τελευταία Αλλαγή: Τώρα
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GOLA_PRESETS = {
+            volpato_l: { type: 'L', size: 57, depth: 26, radius: 5 },
+            volpato_c: { type: 'U', size: 73, depth: 27, radius: 5 },
+            dtc_l: { type: 'L', size: 57, depth: 26, radius: 5 },
+            dtc_c: { type: 'U', size: 74, depth: 27, radius: 5 },
+            geman_l: { type: 'German_L', size: 57.9, depth: 26.2, radius: 5 },
+            geman_c: { type: 'German_U', size: 72.6, depth: 26.2, radius: 5 }
+        };
+
+        function switchMainTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`[data-main-tab="${tab}"]`).classList.add('active');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById(`panel-${tab}`).classList.add('active');
+        }
+
+        function setPlinth(val) {
+            document.getElementById('plinth').value = val;
+        }
+
+        function setDimensions(w, h, d) {
+            document.getElementById('width').value = w;
+            document.getElementById('height').value = h;
+            document.getElementById('depth').value = d;
+        }
+
+        function resetGlobals() {
+            document.getElementById('mat_th').value = 18;
+            document.getElementById('back_th').value = 8;
+            document.getElementById('gap').value = 3;
+            document.getElementById('plinth').value = 100;
+            document.getElementById('pvc_th').value = 1;
+            document.getElementById('worktop_th').value = 40;
+        }
+
+        function updateDefaults() {
+            const type = document.getElementById('cab_type').value;
+            if (type === 'Base') {
+                document.getElementById('height').value = 760;
+                document.getElementById('depth').value = 560;
+            } else if (type === 'Wall') {
+                document.getElementById('height').value = 720;
+                document.getElementById('depth').value = 330;
+            } else if (type === 'Wardrobe') {
+                document.getElementById('height').value = 2200;
+                document.getElementById('depth').value = 580;
+            }
+        }
+
+        function updateConnectorDefaults() {
+            const ct = document.getElementById('connector_type').value;
+            const offsets = {
+                'Screw_3.5': { offset: 37, val: 3 },
+                'Dowel': { offset: 37, val: 3 },
+                'Minifix': { offset: 37, val: 2 },
+                'Lamello_Clamex': { offset: 50, val: 2 },
+                'Cabineo': { offset: 37, val: 2 },
+                'None': { offset: 37, val: 0 }
+            };
+            if (offsets[ct]) {
+                document.getElementById('connector_offset').value = offsets[ct].offset;
+                document.getElementById('connector_val').value = offsets[ct].val;
+            }
+        }
+
+        function updateFrontDefaults() {
+            const ft = document.getElementById('front_type').value;
+            if (ft === 'Drawers') {
+                document.getElementById('shelves').value = 0;
+                document.getElementById('front_count').value = 3;
+                document.getElementById('handle_type').value = 'Bar';
+            } else if (ft === 'Gola') {
+                document.getElementById('handle_type').value = 'Gola';
+            }
+            toggleGolaSettings();
+        }
+
+        function toggleGolaSettings() {
+            const handleType = document.getElementById('handle_type').value;
+            document.getElementById('handleParams').style.display = (handleType === 'Gola' || handleType === 'None') ? 'none' : 'block';
+            document.getElementById('golaParams').style.display = handleType === 'Gola' ? 'block' : 'none';
+        }
+
+        function selectGola(preset) {
+            document.querySelectorAll('.gola-preset-card').forEach(c => c.classList.remove('active'));
+            event.target.closest('.gola-preset-card').classList.add('active');
+            const data = GOLA_PRESETS[preset];
+            if (data) {
+                document.getElementById('gola_type').value = data.type;
+                document.getElementById('gola_size').value = data.size;
+                document.getElementById('gola_depth').value = data.depth;
+                document.getElementById('gola_radius').value = data.radius;
+            }
+        }
+
+        function callRuby(func, args) {
+            console.log(`Calling Ruby: ${func}`, args);
+        }
+
+        function buildCabinet() {
+            console.log('Building cabinet...');
+        }
+
+        function savePreset() {
+            const name = document.getElementById('presetName').value;
+            console.log('Saving preset:', name);
+        }
+
+        function loadPreset() {
+            console.log('Loading preset...');
+        }
+    </script>
+</body>
+</html>
